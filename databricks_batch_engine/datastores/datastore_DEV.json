@@ -1,0 +1,17 @@
+{
+  "environment": "DEV",
+  "workspace_id": "",
+  "workspace_url": "",
+  "sql_warehouse_id": "",
+  "layers": {
+    "bronze": { "catalog": "" },
+    "silver": { "catalog": "" },
+    "gold":   { "catalog": "" }
+  },
+  "metadata": {
+    "catalog": "",
+    "schema": "",
+    "sql_warehouse_id": ""
+  },
+  "external_datastores": {}
+}

@@ -1,0 +1,1403 @@
+{
+  "version": 1,
+  "source_files": [
+    ".github/skills/metadata-validation/validate_metadata_sql.py",
+    "docs/METADATA_REFERENCE.md"
+  ],
+  "orchestration_config": {
+    "processing_methods": [
+      "batch",
+      "execute_databricks_notebook",
+      "execute_databricks_job"
+    ],
+    "target_datastores": [
+      "bronze",
+      "silver",
+      "gold"
+    ]
+  },
+  "category_placement": {
+    "primary_config_categories": [
+      "column_cleansing",
+      "data_cleansing",
+      "other_settings",
+      "source_details",
+      "target_details",
+      "watermark_details"
+    ],
+    "advanced_config_categories": [
+      "data_quality",
+      "data_transformation_steps"
+    ]
+  },
+  "valid_attributes": {
+    "source_details": [
+      "convert_csv_to_parquet",
+      "copy_pattern_suffix",
+      "custom_file_ingestion_function",
+      "custom_file_ingestion_function_notebook",
+      "custom_source_function",
+      "custom_source_function_notebook",
+      "custom_staging_function",
+      "custom_staging_function_notebook",
+      "custom_table_ingestion_function",
+      "custom_table_ingestion_function_notebook",
+      "database_name",
+      "datastore_name",
+      "delimiter",
+      "encoding",
+      "enforce_not_null",
+      "exit_after_staging",
+      "file_format",
+      "file_has_header_row",
+      "header",
+      "multiline",
+      "on_bad_records",
+      "partitioning_option",
+      "process_one_file_at_a_time",
+      "query",
+      "schema",
+      "schema_name",
+      "sftp_wildcard_file_name",
+      "sftp_wildcard_folder_path",
+      "sheet_name",
+      "source",
+      "spark_timestamp_rebase_mode",
+      "staging_catalog_name",
+      "staging_folder_path",
+      "table_name",
+      "wildcard_folder_path",
+      "xml_namespaces_keys",
+      "xml_namespaces_values",
+      "xml_xpath"
+    ],
+    "target_details": [
+      "column_to_mark_source_data_deletion",
+      "compute_statistics_on_columns",
+      "compute_statistics_on_first_n_columns",
+      "delete_rows_with_value",
+      "delimiter",
+      "enable_change_data_feed",
+      "enforce_not_null",
+      "external_location",
+      "fail_on_column_data_type_change",
+      "fail_on_new_schema",
+      "if_duplicate_primary_keys",
+      "liquid_clustering_columns",
+      "merge_in_batches_with_columns",
+      "merge_type",
+      "quarantine_table_name",
+      "replace_where_column",
+      "scd_end_date_column_name",
+      "scd_start_date_column_name",
+      "sheet_name",
+      "source_timestamp_column_name",
+      "spark_timestamp_rebase_mode"
+    ],
+    "watermark_details": [
+      "column_name",
+      "data_type",
+      "table_name",
+      "use_change_data_feed",
+      "use_watermark_column"
+    ],
+    "other_settings": [
+      "data_profiling_frequency",
+      "spark_environment_id"
+    ],
+    "column_cleansing": [
+      "apply_case",
+      "exact_find",
+      "exact_replace",
+      "regex_find",
+      "regex_replace",
+      "replace_non_alphanumeric_with_underscore",
+      "trim"
+    ],
+    "data_cleansing": [
+      "replace_blank_with_null_in_string_columns",
+      "trim_data_in_string_columns"
+    ],
+    "data_quality": [
+      "validate_anomaly",
+      "validate_batch_size",
+      "validate_completeness",
+      "validate_condition",
+      "validate_freshness",
+      "validate_not_null",
+      "validate_pattern",
+      "validate_range",
+      "validate_referential_integrity",
+      "validate_unique"
+    ],
+    "data_transformation_steps": [
+      "add_row_hash",
+      "add_window_function",
+      "aggregate_data",
+      "apply_null_handling",
+      "attach_dimension_surrogate_key",
+      "change_data_types",
+      "columns_to_rename",
+      "concat_columns",
+      "conditional_column",
+      "create_surrogate_key",
+      "custom_transformation_function",
+      "derived_column",
+      "drop_duplicates",
+      "entity_resolution",
+      "explode_array",
+      "filter_data",
+      "flatten_struct",
+      "join_data",
+      "mask_sensitive_data",
+      "normalize_text",
+      "pivot_data",
+      "remove_columns",
+      "replace_values",
+      "select_columns",
+      "sort_data",
+      "split_column",
+      "string_functions",
+      "transform_datetime",
+      "union_data",
+      "unpivot_data"
+    ]
+  },
+  "transformation_attributes": {
+    "columns_to_rename": [
+      "existing_column_name",
+      "new_column_name"
+    ],
+    "derived_column": [
+      "column_name",
+      "expression"
+    ],
+    "filter_data": [
+      "filter_logic"
+    ],
+    "remove_columns": [
+      "column_name"
+    ],
+    "select_columns": [
+      "column_name",
+      "retain_metadata_columns"
+    ],
+    "create_surrogate_key": [
+      "column_name",
+      "type"
+    ],
+    "attach_dimension_surrogate_key": [
+      "dimension_columns_to_add_to_fact",
+      "dimension_key_output_column_name",
+      "dimension_table_join_logic",
+      "dimension_table_key_column_name",
+      "dimension_table_name"
+    ],
+    "drop_duplicates": [
+      "column_name",
+      "order_by",
+      "order_direction"
+    ],
+    "change_data_types": [
+      "column_name",
+      "new_type"
+    ],
+    "apply_null_handling": [
+      "action",
+      "column_name",
+      "convert_empty_space",
+      "default_value",
+      "logic",
+      "values_delimiter",
+      "values_to_convert"
+    ],
+    "replace_values": [
+      "column_name",
+      "replacement_value",
+      "values_delimiter",
+      "values_to_replace"
+    ],
+    "mask_sensitive_data": [
+      "column_name",
+      "digit_char",
+      "lower_char",
+      "other_char",
+      "upper_char"
+    ],
+    "add_row_hash": [
+      "column_name",
+      "hash_algorithm",
+      "output_column_name"
+    ],
+    "pivot_data": [
+      "aggregation",
+      "group_columns",
+      "pivot_column",
+      "value_column"
+    ],
+    "unpivot_data": [
+      "id_columns",
+      "value_columns",
+      "value_name",
+      "variable_name"
+    ],
+    "join_data": [
+      "broadcast_hint",
+      "join_condition",
+      "join_type",
+      "left_columns",
+      "right_columns",
+      "right_table_name"
+    ],
+    "add_window_function": [
+      "column_name",
+      "order_by",
+      "order_direction",
+      "output_column_name",
+      "partition_by",
+      "window_function"
+    ],
+    "aggregate_data": [
+      "aggregation",
+      "column_name",
+      "group_by_columns",
+      "output_column_name"
+    ],
+    "transform_datetime": [
+      "column_name",
+      "date_format",
+      "days",
+      "end_date_column",
+      "months",
+      "operation",
+      "output_column_name",
+      "timestamp_format"
+    ],
+    "union_data": [
+      "allow_missing_columns",
+      "deduplicate",
+      "union_tables",
+      "union_type"
+    ],
+    "sort_data": [
+      "column_name",
+      "sort_direction"
+    ],
+    "explode_array": [
+      "column_name",
+      "output_column_name",
+      "preserve_nulls"
+    ],
+    "flatten_struct": [
+      "column_name",
+      "drop_original",
+      "fields_to_include",
+      "prefix"
+    ],
+    "split_column": [
+      "column_name",
+      "delimiter",
+      "drop_original",
+      "max_splits",
+      "output_column_names"
+    ],
+    "concat_columns": [
+      "column_name",
+      "drop_original",
+      "null_handling",
+      "output_column_name",
+      "separator"
+    ],
+    "conditional_column": [
+      "column_name",
+      "conditions",
+      "default_value",
+      "values",
+      "values_delimiter"
+    ],
+    "string_functions": [
+      "column_name",
+      "function",
+      "output_column_name"
+    ],
+    "normalize_text": [
+      "column_name",
+      "operations",
+      "output_column_name"
+    ],
+    "custom_transformation_function": [
+      "functions_to_execute",
+      "notebooks_to_run"
+    ],
+    "entity_resolution": [
+      "auto_match_logic",
+      "comparison_types",
+      "match_with_manual_review_logic",
+      "only_fuzzy_match_if_one_exact_match",
+      "primary_dataset_alias",
+      "primary_dataset_comparison_fields",
+      "secondary_dataset_alias",
+      "secondary_dataset_comparison_fields",
+      "secondary_dataset_query",
+      "use_ngram_filtering_for_fuzzy_comparisons"
+    ],
+    "validate_condition": [
+      "condition",
+      "if_not_compliant",
+      "message"
+    ],
+    "validate_referential_integrity": [
+      "current_table_column_name",
+      "if_not_compliant",
+      "message",
+      "reference_table_column_name",
+      "reference_table_name"
+    ],
+    "validate_pattern": [
+      "allow_null",
+      "column_name",
+      "if_not_compliant",
+      "message",
+      "pattern_type"
+    ],
+    "validate_batch_size": [
+      "if_not_compliant",
+      "message",
+      "min_rows"
+    ],
+    "validate_anomaly": [
+      "column_name",
+      "if_not_compliant",
+      "message",
+      "method",
+      "minimum_baseline_records",
+      "threshold"
+    ],
+    "validate_not_null": [
+      "column_name",
+      "if_not_compliant",
+      "message"
+    ],
+    "validate_unique": [
+      "column_name",
+      "if_not_compliant",
+      "message"
+    ],
+    "validate_range": [
+      "column_name",
+      "if_not_compliant",
+      "max_value",
+      "message",
+      "min_value"
+    ],
+    "validate_freshness": [
+      "column_name",
+      "if_not_compliant",
+      "max_age",
+      "message",
+      "unit_of_measure"
+    ],
+    "validate_completeness": [
+      "column_name",
+      "if_not_compliant",
+      "message",
+      "min_completeness_percent"
+    ]
+  },
+  "required_attributes": {
+    "columns_to_rename": [
+      "existing_column_name",
+      "new_column_name"
+    ],
+    "derived_column": [
+      "column_name",
+      "expression"
+    ],
+    "filter_data": [
+      "filter_logic"
+    ],
+    "sort_data": [
+      "column_name"
+    ],
+    "remove_columns": [
+      "column_name"
+    ],
+    "select_columns": [
+      "column_name"
+    ],
+    "create_surrogate_key": [
+      "column_name",
+      "type"
+    ],
+    "attach_dimension_surrogate_key": [
+      "dimension_key_output_column_name",
+      "dimension_table_join_logic",
+      "dimension_table_key_column_name",
+      "dimension_table_name"
+    ],
+    "drop_duplicates": [
+      "column_name"
+    ],
+    "custom_transformation_function": [
+      "functions_to_execute",
+      "notebooks_to_run"
+    ],
+    "change_data_types": [
+      "column_name",
+      "new_type"
+    ],
+    "apply_null_handling": [
+      "action",
+      "column_name"
+    ],
+    "replace_values": [
+      "column_name",
+      "replacement_value",
+      "values_to_replace"
+    ],
+    "mask_sensitive_data": [
+      "column_name"
+    ],
+    "add_row_hash": [
+      "column_name",
+      "output_column_name"
+    ],
+    "pivot_data": [
+      "aggregation",
+      "group_columns",
+      "pivot_column",
+      "value_column"
+    ],
+    "unpivot_data": [
+      "id_columns",
+      "value_columns"
+    ],
+    "join_data": [
+      "join_condition",
+      "join_type",
+      "left_columns",
+      "right_columns",
+      "right_table_name"
+    ],
+    "add_window_function": [
+      "output_column_name",
+      "window_function"
+    ],
+    "aggregate_data": [
+      "aggregation",
+      "column_name",
+      "output_column_name"
+    ],
+    "transform_datetime": [
+      "column_name",
+      "operation",
+      "output_column_name"
+    ],
+    "union_data": [
+      "union_tables"
+    ],
+    "explode_array": [
+      "column_name"
+    ],
+    "flatten_struct": [
+      "column_name"
+    ],
+    "split_column": [
+      "column_name",
+      "output_column_names"
+    ],
+    "concat_columns": [
+      "column_name",
+      "output_column_name"
+    ],
+    "conditional_column": [
+      "column_name",
+      "conditions",
+      "values"
+    ],
+    "string_functions": [
+      "column_name",
+      "function",
+      "output_column_name"
+    ],
+    "normalize_text": [
+      "column_name"
+    ],
+    "entity_resolution": [
+      "auto_match_logic",
+      "comparison_types",
+      "match_with_manual_review_logic",
+      "primary_dataset_alias",
+      "primary_dataset_comparison_fields",
+      "secondary_dataset_alias",
+      "secondary_dataset_comparison_fields",
+      "secondary_dataset_query"
+    ],
+    "validate_condition": [
+      "condition",
+      "message"
+    ],
+    "validate_referential_integrity": [
+      "current_table_column_name",
+      "message",
+      "reference_table_column_name",
+      "reference_table_name"
+    ],
+    "validate_pattern": [
+      "column_name",
+      "message",
+      "pattern_type"
+    ],
+    "validate_not_null": [
+      "column_name",
+      "message"
+    ],
+    "validate_unique": [
+      "column_name",
+      "message"
+    ],
+    "validate_range": [
+      "column_name",
+      "message"
+    ],
+    "validate_batch_size": [
+      "message",
+      "min_rows"
+    ],
+    "validate_freshness": [
+      "column_name",
+      "max_age",
+      "message",
+      "unit_of_measure"
+    ],
+    "validate_completeness": [
+      "column_name",
+      "message",
+      "min_completeness_percent"
+    ],
+    "validate_anomaly": [
+      "column_name",
+      "message",
+      "method"
+    ]
+  },
+  "valid_values": {
+    "merge_type": [
+      "append",
+      "merge",
+      "merge_and_delete",
+      "merge_mark_all_deleted",
+      "merge_mark_unmatched_deleted",
+      "output_file",
+      "overwrite",
+      "replace_where",
+      "scd2"
+    ],
+    "source": [
+      "azure_sql",
+      "db2",
+      "my_sql",
+      "oracle",
+      "postgre_sql",
+      "rest_api",
+      "sftp",
+      "sql_server"
+    ],
+    "copy_pattern_suffix": [
+      "csv"
+    ],
+    "on_bad_records": [
+      "drop",
+      "fail",
+      "quarantine"
+    ],
+    "if_duplicate_primary_keys": [
+      "fail",
+      "mark",
+      "quarantine",
+      "warn"
+    ],
+    "data_profiling_frequency": [
+      "daily",
+      "monthly",
+      "never",
+      "weekly"
+    ],
+    "spark_timestamp_rebase_mode": [
+      "CORRECTED",
+      "EXCEPTION",
+      "LEGACY"
+    ],
+    "data_type": [
+      "datetime",
+      "numeric"
+    ],
+    "apply_case": [
+      "lower",
+      "title",
+      "upper"
+    ],
+    "if_not_compliant": [
+      "fail",
+      "mark",
+      "quarantine",
+      "warn"
+    ],
+    "pattern_type": [
+      "alpha_only",
+      "alphanumeric_only",
+      "credit_card",
+      "date_mmddyyyy",
+      "date_yyyymmdd",
+      "email",
+      "guid",
+      "ip_address",
+      "ipv4_address",
+      "ipv6_address",
+      "numeric_only",
+      "uk_phone",
+      "uk_postcode",
+      "url",
+      "us_phone",
+      "us_ssn",
+      "us_zip"
+    ],
+    "join_type": [
+      "anti",
+      "full_outer",
+      "inner",
+      "left",
+      "left_outer",
+      "outer",
+      "semi"
+    ],
+    "broadcast_hint": [
+      "false",
+      "true"
+    ],
+    "window_function": [
+      "avg",
+      "count",
+      "dense_rank",
+      "first_value",
+      "last_value",
+      "max",
+      "min",
+      "rank",
+      "row_number",
+      "sum"
+    ],
+    "aggregation": [
+      "avg",
+      "count",
+      "count_distinct",
+      "first",
+      "last",
+      "max",
+      "min",
+      "sum"
+    ],
+    "union_type": [
+      "by_name",
+      "by_position"
+    ],
+    "function": [
+      "initcap",
+      "length",
+      "lower",
+      "ltrim",
+      "reverse",
+      "rtrim",
+      "soundex",
+      "trim",
+      "upper"
+    ],
+    "order_direction": [
+      "asc",
+      "desc"
+    ],
+    "sort_direction": [
+      "asc",
+      "desc"
+    ],
+    "action": [
+      "convert_values_to_null",
+      "drop_rows",
+      "replace_with_default"
+    ],
+    "logic": [
+      "all",
+      "any"
+    ],
+    "method": [
+      "iqr",
+      "z_score"
+    ],
+    "hash_algorithm": [
+      "sha256",
+      "xxhash64"
+    ],
+    "null_handling": [
+      "empty",
+      "keep",
+      "skip"
+    ],
+    "type": [
+      "auto_increment"
+    ],
+    "allow_null": [
+      "false",
+      "true"
+    ],
+    "allow_missing_columns": [
+      "false",
+      "true"
+    ],
+    "deduplicate": [
+      "false",
+      "true"
+    ],
+    "preserve_nulls": [
+      "false",
+      "true"
+    ],
+    "drop_original": [
+      "false",
+      "true"
+    ],
+    "retain_metadata_columns": [
+      "false",
+      "true"
+    ],
+    "convert_empty_space": [
+      "false",
+      "true"
+    ],
+    "only_fuzzy_match_if_one_exact_match": [
+      "false",
+      "true"
+    ],
+    "use_ngram_filtering_for_fuzzy_comparisons": [
+      "false",
+      "true"
+    ],
+    "comparison_types": [
+      "exact",
+      "fuzzy",
+      "percent_difference",
+      "soundex"
+    ],
+    "unit_of_measure": [
+      "day",
+      "hour",
+      "minute",
+      "month",
+      "week"
+    ],
+    "operation": [
+      "add_days",
+      "add_months",
+      "current_date",
+      "current_timestamp",
+      "date_diff",
+      "day",
+      "dayofmonth",
+      "dayofweek",
+      "dayofyear",
+      "format_date",
+      "hour",
+      "minute",
+      "month",
+      "quarter",
+      "second",
+      "subtract_days",
+      "to_timestamp",
+      "weekofyear",
+      "year"
+    ],
+    "operations": [
+      "ascii_only",
+      "collapse_whitespace",
+      "lowercase",
+      "remove_digits",
+      "remove_punctuation",
+      "remove_special_chars",
+      "strip_accents",
+      "trim",
+      "uppercase"
+    ],
+    "new_type": [
+      "binary",
+      "boolean",
+      "date",
+      "double",
+      "float",
+      "int",
+      "long",
+      "string",
+      "timestamp"
+    ]
+  },
+  "required_configs_by_source": {
+    "azure_sql": [
+      "datastore_name",
+      "database_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "sql_server": [
+      "datastore_name",
+      "database_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "oracle": [
+      "datastore_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "postgre_sql": [
+      "datastore_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "my_sql": [
+      "datastore_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "db2": [
+      "datastore_name",
+      "schema_name",
+      "table_name",
+      "query",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "rest_api": [
+      "datastore_name",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ],
+    "sftp": [
+      "datastore_name",
+      "sftp_wildcard_folder_path",
+      "staging_catalog_name",
+      "staging_folder_path"
+    ]
+  },
+  "boolean_configs": [
+    {
+      "category": "target_details",
+      "name": "fail_on_new_schema"
+    },
+    {
+      "category": "target_details",
+      "name": "fail_on_column_data_type_change"
+    },
+    {
+      "category": "target_details",
+      "name": "enable_change_data_feed"
+    },
+    {
+      "category": "column_cleansing",
+      "name": "trim"
+    },
+    {
+      "category": "column_cleansing",
+      "name": "replace_non_alphanumeric_with_underscore"
+    },
+    {
+      "category": "source_details",
+      "name": "file_has_header_row"
+    },
+    {
+      "category": "source_details",
+      "name": "header"
+    },
+    {
+      "category": "source_details",
+      "name": "multiline"
+    },
+    {
+      "category": "source_details",
+      "name": "convert_csv_to_parquet"
+    },
+    {
+      "category": "source_details",
+      "name": "exit_after_staging"
+    },
+    {
+      "category": "watermark_details",
+      "name": "use_watermark_column"
+    },
+    {
+      "category": "watermark_details",
+      "name": "use_change_data_feed"
+    },
+    {
+      "category": "source_details",
+      "name": "enforce_not_null"
+    },
+    {
+      "category": "source_details",
+      "name": "process_one_file_at_a_time"
+    }
+  ],
+  "guid_configs": [
+    {
+      "category": "other_settings",
+      "name": "spark_environment_id"
+    }
+  ],
+  "custom_function_signatures": {
+    "custom_transformation_function": {
+      "params": [
+        "new_data",
+        "metadata",
+        "spark"
+      ],
+      "required_params": [
+        "new_data",
+        "metadata",
+        "spark"
+      ],
+      "return_type": "DataFrame",
+      "description": "transformation function (data_transformation_steps)",
+      "metadata_param": "metadata"
+    },
+    "custom_table_ingestion_function": {
+      "params": [
+        "metadata",
+        "spark"
+      ],
+      "required_params": [
+        "metadata",
+        "spark"
+      ],
+      "return_type": "DataFrame",
+      "description": "table ingestion function (source_details)",
+      "metadata_param": "metadata"
+    },
+    "custom_file_ingestion_function": {
+      "params": [
+        "file_paths",
+        "all_metadata",
+        "spark"
+      ],
+      "required_params": [
+        "file_paths",
+        "all_metadata",
+        "spark"
+      ],
+      "return_type": "DataFrame",
+      "description": "file ingestion function (source_details)",
+      "metadata_param": "all_metadata"
+    },
+    "custom_staging_function": {
+      "params": [
+        "metadata",
+        "spark"
+      ],
+      "required_params": [
+        "metadata",
+        "spark"
+      ],
+      "return_type": "dict",
+      "description": "custom staging function (source_details)",
+      "metadata_param": "metadata"
+    }
+  },
+  "valid_metadata_keys": {
+    "common": [
+      "advanced_config",
+      "datastore_config",
+      "event_payload",
+      "orchestration_metadata",
+      "primary_config"
+    ],
+    "custom_transformation_function": [
+      "function_config"
+    ],
+    "custom_table_ingestion_function": [
+      "watermark_column_name",
+      "watermark_filter",
+      "watermark_value"
+    ],
+    "custom_file_ingestion_function": [],
+    "custom_staging_function": [
+      "orchestration_metadata",
+      "primary_config",
+      "source_datastore_config",
+      "staging_datastore_config",
+      "target_folderpath_w_ingestion_type",
+      "watermark_value"
+    ]
+  },
+  "common_workspace_variable_keys": [
+    "bronze_datastore_name",
+    "bronze_datastore_workspace_name",
+    "gold_datastore_name",
+    "gold_datastore_workspace_name",
+    "metadata_catalog_name",
+    "metadata_datastore_name",
+    "silver_datastore_name",
+    "silver_datastore_workspace_name"
+  ],
+  "databricks_standard_libraries": [
+    "PIL",
+    "abc",
+    "accelerate",
+    "adlfs",
+    "aiohttp",
+    "altair",
+    "argparse",
+    "arrow",
+    "ast",
+    "asyncio",
+    "attrs",
+    "audioread",
+    "auto_sklearn",
+    "avro",
+    "azure",
+    "azure.core",
+    "azure.datalake.store",
+    "azure.identity",
+    "azure.keyvault",
+    "azure.storage",
+    "azure.storage.blob",
+    "azure.storage.filedatalake",
+    "backoff",
+    "base64",
+    "beautifulsoup4",
+    "bokeh",
+    "boltons",
+    "boto3",
+    "botocore",
+    "bottleneck",
+    "bs4",
+    "bz2",
+    "cachetools",
+    "calendar",
+    "camelot",
+    "catboost",
+    "cattrs",
+    "cerberus",
+    "chardet",
+    "charset_normalizer",
+    "click",
+    "cloudpickle",
+    "codecs",
+    "collections",
+    "colorama",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "convertdate",
+    "copy",
+    "coverage",
+    "cryptography",
+    "cssselect",
+    "csv",
+    "ctypes",
+    "cv2",
+    "cx_Oracle",
+    "cytoolz",
+    "dash",
+    "dask",
+    "databricks",
+    "databricks.connect",
+    "databricks.sdk",
+    "dataclasses",
+    "dataclasses_json",
+    "datasets",
+    "datetime",
+    "dateutil",
+    "dbutils",
+    "decimal",
+    "decorator",
+    "delta",
+    "delta.tables",
+    "deprecation",
+    "difflib",
+    "dill",
+    "dis",
+    "diskcache",
+    "doctest",
+    "docx",
+    "email",
+    "email_validator",
+    "enum",
+    "faker",
+    "fastavro",
+    "fbprophet",
+    "flaml",
+    "fn",
+    "folium",
+    "fractions",
+    "fsspec_wrapper",
+    "functools",
+    "funcy",
+    "fuzzywuzzy",
+    "gensim",
+    "geopandas",
+    "geopy",
+    "getpass",
+    "glob",
+    "google.api_core",
+    "google.auth",
+    "google.cloud",
+    "gradio",
+    "graph_tool",
+    "graphviz",
+    "great_expectations",
+    "gzip",
+    "h2o",
+    "hashlib",
+    "hmac",
+    "holidays",
+    "html",
+    "html5lib",
+    "http",
+    "httpcore",
+    "httpx",
+    "huggingface_hub",
+    "hyperopt",
+    "hypothesis",
+    "igraph",
+    "imageio",
+    "importlib",
+    "inspect",
+    "interpret",
+    "invoke",
+    "io",
+    "ipython",
+    "ipywidgets",
+    "itertools",
+    "jellyfish",
+    "jmespath",
+    "joblib",
+    "json",
+    "jsonpath_ng",
+    "jsonschema",
+    "jupyter",
+    "koalas",
+    "librosa",
+    "lightgbm",
+    "logging",
+    "lxml",
+    "lzma",
+    "marshmallow",
+    "math",
+    "matplotlib",
+    "mimesis",
+    "mlflow",
+    "mlflow_skinny",
+    "mmlspark",
+    "mock",
+    "modin",
+    "more_itertools",
+    "msal",
+    "msal_extensions",
+    "msgpack",
+    "msrest",
+    "multiprocess",
+    "networkx",
+    "neuralprophet",
+    "nltk",
+    "nni",
+    "numba",
+    "numexpr",
+    "numpy",
+    "onnx",
+    "onnxruntime",
+    "opencv",
+    "openpyxl",
+    "operator",
+    "optuna",
+    "os",
+    "packaging",
+    "pandas",
+    "pandera",
+    "panel",
+    "paramiko",
+    "pathlib",
+    "pdfplumber",
+    "pendulum",
+    "phonenumbers",
+    "pickle",
+    "pillow",
+    "pip",
+    "pkgutil",
+    "platform",
+    "plotly",
+    "pmdarima",
+    "polars",
+    "pprint",
+    "pptx",
+    "prettytable",
+    "prophet",
+    "protobuf",
+    "psycopg2",
+    "pyarrow",
+    "pycountry",
+    "pydantic",
+    "pydot",
+    "pygraphviz",
+    "pymssql",
+    "pymysql",
+    "pyodbc",
+    "pypdf",
+    "pypdf2",
+    "pyproj",
+    "pyspark",
+    "pyspark.ml",
+    "pyspark.pandas",
+    "pyspark.sql",
+    "pyspark.sql.functions",
+    "pyspark.sql.types",
+    "pyspark.sql.window",
+    "pytest",
+    "python_dateutil",
+    "python_docx",
+    "python_pptx",
+    "pytorch",
+    "pytz",
+    "pywavelets",
+    "pyyaml",
+    "queue",
+    "random",
+    "rapidfuzz",
+    "ray",
+    "ray.tune",
+    "re",
+    "regex",
+    "requests",
+    "responses",
+    "retry",
+    "rich",
+    "safetensors",
+    "scikit-learn",
+    "scikit_image",
+    "scipy",
+    "seaborn",
+    "secrets",
+    "setuptools",
+    "shap",
+    "shapely",
+    "shelve",
+    "shutil",
+    "six",
+    "skimage",
+    "sklearn",
+    "socket",
+    "spacy",
+    "sqlalchemy",
+    "sqlite3",
+    "ssl",
+    "statistics",
+    "statsforecast",
+    "statsmodels",
+    "streamlit",
+    "string",
+    "struct",
+    "subprocess",
+    "sympy",
+    "sys",
+    "tabulate",
+    "tarfile",
+    "tempfile",
+    "tenacity",
+    "textblob",
+    "textdistance",
+    "textwrap",
+    "tf2onnx",
+    "threading",
+    "time",
+    "tokenizers",
+    "toml",
+    "tomli",
+    "toolz",
+    "torch",
+    "torchvision",
+    "tpot",
+    "tqdm",
+    "traceback",
+    "transformers",
+    "typing",
+    "unittest",
+    "urllib",
+    "urllib3",
+    "uuid",
+    "vaex",
+    "voila",
+    "voluptuous",
+    "warnings",
+    "websocket",
+    "wheel",
+    "workalendar",
+    "wrapt",
+    "xgboost",
+    "xlrd",
+    "xlsxwriter",
+    "xml",
+    "xmltodict",
+    "yaml",
+    "zipfile",
+    "zlib"
+  ],
+  "accelerator_template_repos": [
+    "git@github.com:mcaps-microsoft/ISD-Data-AI-Platform-Accelerator.git",
+    "https://github.com/mcaps-microsoft/ISD-Data-AI-Platform-Accelerator",
+    "https://github.com/mcaps-microsoft/ISD-Data-AI-Platform-Accelerator.git"
+  ],
+  "deletion_aware_merge_types": [
+    "merge_and_delete",
+    "merge_mark_all_deleted",
+    "merge_mark_unmatched_deleted",
+    "scd2"
+  ],
+  "databricks_cluster_libraries_docs_url": "https://docs.databricks.com/en/libraries/cluster-libraries.html",
+  "merge_types_requiring_delete_columns": [
+    "merge_and_delete",
+    "merge_mark_all_deleted",
+    "merge_mark_unmatched_deleted"
+  ],
+  "merge_types_requiring_primary_keys": [
+    "merge",
+    "merge_and_delete",
+    "merge_mark_all_deleted",
+    "merge_mark_unmatched_deleted",
+    "scd2"
+  ],
+  "processing_methods_requiring_datastore_name": [
+    "execute_databricks_job",
+    "execute_databricks_notebook"
+  ],
+  "valid_merge_types_by_layer": {
+    "bronze": [
+      "append",
+      "overwrite"
+    ]
+  },
+  "checks_without_row_level_actions": [
+    "validate_batch_size",
+    "validate_completeness",
+    "validate_freshness"
+  ]
+}

@@ -1,0 +1,557 @@
+{
+  "version": 1,
+  "source_files": [
+    ".github/skills/table-observability/SKILL.md",
+    ".github/skills/table-observability/scripts/invoke_metadata_query.py"
+  ],
+  "script": ".github/skills/table-observability/scripts/invoke_metadata_query.py",
+  "capabilities": {
+    "RunStatus": {
+      "domain": "run_history",
+      "summary": "Latest table status rows from Data_Pipeline_Logs.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "top"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "latest status by table",
+        "run health"
+      ],
+      "side_effects": "none"
+    },
+    "RecentRuns": {
+      "domain": "run_history",
+      "summary": "Recent table runs with duration, watermark, and monitor URL.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "top",
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "recent runs",
+        "post-run history"
+      ],
+      "side_effects": "none"
+    },
+    "RecentFailures": {
+      "domain": "run_history",
+      "summary": "Recent failed runs across the metadata warehouse.",
+      "required_all_of": [],
+      "required_any_of": [],
+      "optional_args": [
+        "hours"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "recent platform failures"
+      ],
+      "side_effects": "none"
+    },
+    "RunPerformance": {
+      "domain": "run_history",
+      "summary": "Run performance aggregates by table and processing phase.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "performance",
+        "duration analysis"
+      ],
+      "side_effects": "none"
+    },
+    "VolumeTrend": {
+      "domain": "run_history",
+      "summary": "Daily processed and quarantined record totals for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "volume trend",
+        "freshness trend"
+      ],
+      "side_effects": "none"
+    },
+    "WatermarkProgress": {
+      "domain": "run_history",
+      "summary": "Recent watermark values for batch runs of a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "top"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "watermark progress"
+      ],
+      "side_effects": "none"
+    },
+    "TriggerReliability": {
+      "domain": "run_history",
+      "summary": "Failure-rate summary across triggers.",
+      "required_all_of": [],
+      "required_any_of": [],
+      "optional_args": [
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "trigger health",
+        "reliability"
+      ],
+      "side_effects": "none"
+    },
+    "ActiveRuns": {
+      "domain": "run_history",
+      "summary": "Currently started runs that have not completed.",
+      "required_all_of": [],
+      "required_any_of": [],
+      "optional_args": [
+        "top",
+        "hours"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "active runs",
+        "what is running now"
+      ],
+      "side_effects": "none"
+    },
+    "RunByExecution": {
+      "domain": "run_history",
+      "summary": "Run rows correlated by Trigger_Execution_ID.",
+      "required_all_of": [
+        "trigger_execution_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "table_id",
+        "top"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "execution-correlated run lookup"
+      ],
+      "side_effects": "none"
+    },
+    "RunOutcomeWithDQ": {
+      "domain": "post_run_validation",
+      "summary": "Execution-correlated run rows plus DQ notifications for those Log_IDs.",
+      "required_all_of": [
+        "trigger_execution_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "table_id",
+        "top"
+      ],
+      "result_kind": "run_rows_with_dq",
+      "preferred_contexts": [
+        "failed run analysis",
+        "execution-correlated outcome"
+      ],
+      "side_effects": "none"
+    },
+    "LatestRunWithDQByTable": {
+      "domain": "post_run_validation",
+      "summary": "Most recent relevant run row for a table plus correlated DQ notifications.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "top",
+        "days"
+      ],
+      "result_kind": "selected_run_with_dq",
+      "preferred_contexts": [
+        "successful single-table post-run validation"
+      ],
+      "side_effects": "none"
+    },
+    "LatestRunWithDQByTrigger": {
+      "domain": "post_run_validation",
+      "summary": "Latest execution for a trigger plus correlated DQ notifications.",
+      "required_all_of": [
+        "trigger_name"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "table_ids",
+        "days"
+      ],
+      "result_kind": "trigger_run_rows_with_dq",
+      "preferred_contexts": [
+        "successful trigger or multi-table post-run validation"
+      ],
+      "side_effects": "none"
+    },
+    "DQSummary": {
+      "domain": "data_quality",
+      "summary": "All DQ notifications for a table ordered by start time.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "dq summary",
+        "quarantine details"
+      ],
+      "side_effects": "none"
+    },
+    "DQBreakdown": {
+      "domain": "data_quality",
+      "summary": "Grouped DQ counts and impacted rows by category and result.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "dq breakdown",
+        "rule distribution"
+      ],
+      "side_effects": "none"
+    },
+    "DQTrend": {
+      "domain": "data_quality",
+      "summary": "Daily DQ trend aggregates for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "dq trends"
+      ],
+      "side_effects": "none"
+    },
+    "DQOverview": {
+      "domain": "data_quality",
+      "summary": "Cross-table DQ overview across recent days.",
+      "required_all_of": [],
+      "required_any_of": [],
+      "optional_args": [
+        "top",
+        "days"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "platform dq overview"
+      ],
+      "side_effects": "none"
+    },
+    "DQByLogId": {
+      "domain": "data_quality",
+      "summary": "DQ notifications for a specific Log_ID.",
+      "required_all_of": [
+        "log_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "single run dq by log id"
+      ],
+      "side_effects": "none"
+    },
+    "ActivityLogsByLogId": {
+      "domain": "diagnostics",
+      "summary": "Activity_Run_Logs rows for a specific Log_ID.",
+      "required_all_of": [
+        "log_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "step logs by log id"
+      ],
+      "side_effects": "none"
+    },
+    "ActivityLogsByExecution": {
+      "domain": "diagnostics",
+      "summary": "Execution-correlated run rows plus activity logs, with fallback by Table_ID when needed.",
+      "required_all_of": [
+        "trigger_execution_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "table_id",
+        "hours",
+        "top"
+      ],
+      "result_kind": "run_rows_with_activity_logs",
+      "preferred_contexts": [
+        "failed run log drill-in",
+        "notebook logs for a run"
+      ],
+      "side_effects": "none"
+    },
+    "ActivityLogsByTableId": {
+      "domain": "diagnostics",
+      "summary": "Recent activity logs by Table_ID.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "hours"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "recent activity logs by table"
+      ],
+      "side_effects": "none"
+    },
+    "SchemaChanges": {
+      "domain": "schema",
+      "summary": "Schema_Changes rows for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "schema drift history"
+      ],
+      "side_effects": "none"
+    },
+    "SchemaDetails": {
+      "domain": "schema",
+      "summary": "Stored procedure-backed schema details for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "current schema details"
+      ],
+      "side_effects": "none"
+    },
+    "ProfileSummary": {
+      "domain": "profiling",
+      "summary": "Latest EDA profile summary for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "eda profile",
+        "column statistics"
+      ],
+      "side_effects": "none"
+    },
+    "LineageUpstream": {
+      "domain": "lineage",
+      "summary": "Upstream lineage rows for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "upstream lineage"
+      ],
+      "side_effects": "none"
+    },
+    "LineageDownstream": {
+      "domain": "lineage",
+      "summary": "Downstream lineage rows for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "downstream lineage"
+      ],
+      "side_effects": "none"
+    },
+    "FullTriggerLineage": {
+      "domain": "lineage",
+      "summary": "Full lineage graph for a trigger.",
+      "required_all_of": [
+        "trigger_name"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "trigger lineage"
+      ],
+      "side_effects": "none"
+    },
+    "OrchestrationConfig": {
+      "domain": "metadata_config",
+      "summary": "Orchestration metadata row for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "orchestration config"
+      ],
+      "side_effects": "none"
+    },
+    "ConfigAndStatus": {
+      "domain": "metadata_config",
+      "summary": "Configuration and latest run status joined for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "config plus last status"
+      ],
+      "side_effects": "none"
+    },
+    "FullHealth": {
+      "domain": "diagnostics",
+      "summary": "Bundled run, DQ, schema, and profile views for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "named_result_sets",
+      "preferred_contexts": [
+        "broad health check"
+      ],
+      "side_effects": "none"
+    },
+    "FullMetadataConfig": {
+      "domain": "metadata_config",
+      "summary": "Bundled orchestration, primary config, and advanced config result sets for a table.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "named_result_sets",
+      "preferred_contexts": [
+        "full config inspection"
+      ],
+      "side_effects": "none"
+    },
+    "DatastoreConfig": {
+      "domain": "metadata_config",
+      "summary": "Datastore_Configuration row for a datastore.",
+      "required_all_of": [
+        "datastore_name"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "datastore endpoint lookup"
+      ],
+      "side_effects": "none"
+    },
+    "TriggerOverview": {
+      "domain": "metadata_config",
+      "summary": "Bundled trigger orchestration and last-run-per-table result sets.",
+      "required_all_of": [
+        "trigger_name"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "named_result_sets",
+      "preferred_contexts": [
+        "trigger summary"
+      ],
+      "side_effects": "none"
+    },
+    "WatermarkComparison": {
+      "domain": "metadata_config",
+      "summary": "Current versus previous watermark values across a trigger.",
+      "required_all_of": [
+        "trigger_name"
+      ],
+      "required_any_of": [],
+      "optional_args": [],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "watermark comparison"
+      ],
+      "side_effects": "none"
+    },
+    "StaleLogs": {
+      "domain": "operations",
+      "summary": "Find stale staging log rows that block FIFO execution, with optional resolution.",
+      "required_all_of": [
+        "table_id"
+      ],
+      "required_any_of": [],
+      "optional_args": [
+        "hours",
+        "resolve"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "stale logs",
+        "fifo blockage"
+      ],
+      "side_effects": "optional_with_resolve",
+      "resolve_flag_behavior": "Insert a Failed staging row for each stale Log_ID to clear the FIFO block without deleting history."
+    },
+    "ResetWatermark": {
+      "domain": "operations",
+      "summary": "Preview or insert FULL_RELOAD watermark reset records for a table, set of tables, or trigger.",
+      "required_all_of": [],
+      "required_any_of": [
+        "table_id",
+        "table_ids",
+        "trigger_name"
+      ],
+      "optional_args": [
+        "resolve"
+      ],
+      "result_kind": "rows",
+      "preferred_contexts": [
+        "force full reload",
+        "reset watermark"
+      ],
+      "side_effects": "optional_with_resolve",
+      "resolve_flag_behavior": "Insert Processed FULL_RELOAD watermark records for the targeted tables."
+    }
+  }
+}
