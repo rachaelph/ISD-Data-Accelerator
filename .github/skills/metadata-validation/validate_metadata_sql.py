@@ -987,10 +987,10 @@ def validate_orchestration(result: ValidationResult, orch_rows: list, environmen
             result.add_issue(
                 'error',
                 'datastore_config',
-                f"Could not locate datastore configuration notebook for environment '{environment}'.",
+                f"Could not locate datastore configuration file for environment '{environment}'.",
                 suggestion=(
-                    "Datastore validation requires a datastore notebook (no hardcoded fallback).\n"
-                    "Expected path pattern: <workspace>/datastores/datastore_<ENV>.Notebook/notebook-content.sql"
+                    "Datastore validation requires a datastore_<ENV>.json file (no hardcoded fallback).\n"
+                    "Expected path pattern: <engine_folder>/datastores/datastore_<ENV>.json"
                 )
             )
         else:
@@ -1000,7 +1000,7 @@ def validate_orchestration(result: ValidationResult, orch_rows: list, environmen
                     'error',
                     'datastore_config',
                     f"Datastore configuration file was found at '{datastore_config_path}' but no datastore names could be parsed.",
-                    suggestion="Ensure notebook-content.sql has INSERT INTO [dbo].[Datastore_Configuration] VALUES (...) rows."
+                    suggestion="Ensure datastore_<ENV>.json has top-level objects keyed by datastore name (e.g. 'bronze', 'silver', 'gold')."
                 )
             else:
                 valid_datastores = discovered
@@ -1805,13 +1805,15 @@ def precompute_cross_file_table_ids(metadata_dir: Path) -> Dict[int, str]:
         Dict mapping Table_ID to the .Notebook folder name that defines it
     """
     all_table_ids: Dict[int, str] = {}
-    
-    for sql_file in metadata_dir.glob("*.Notebook/notebook-content.sql"):
+
+    # Support both flat .sql files and legacy .Notebook/notebook-content.sql layout
+    sql_files = list(metadata_dir.glob("*.sql")) + list(metadata_dir.glob("*.Notebook/notebook-content.sql"))
+    for sql_file in sql_files:
         file_table_ids = get_table_ids_from_file(sql_file)
-        # Store with the .Notebook folder name for better error messages
+        owner = sql_file.parent.name if sql_file.parent.name.endswith('.Notebook') else sql_file.name
         for table_id in file_table_ids:
-            all_table_ids[table_id] = sql_file.parent.name
-    
+            all_table_ids[table_id] = owner
+
     return all_table_ids
 
 
@@ -1828,13 +1830,15 @@ def precompute_cross_file_target_entities(metadata_dir: Path) -> Dict[str, str]:
         Dict mapping "datastore|entity" key to the .Notebook folder name that defines it
     """
     all_target_entities: Dict[str, str] = {}
-    
-    for sql_file in metadata_dir.glob("*.Notebook/notebook-content.sql"):
+
+    # Support both flat .sql files and legacy .Notebook/notebook-content.sql layout
+    sql_files = list(metadata_dir.glob("*.sql")) + list(metadata_dir.glob("*.Notebook/notebook-content.sql"))
+    for sql_file in sql_files:
         file_entities = get_target_entities_from_file(sql_file)
-        # Store with the .Notebook folder name for better error messages
+        owner = sql_file.parent.name if sql_file.parent.name.endswith('.Notebook') else sql_file.name
         for key in file_entities:
-            all_target_entities[key] = sql_file.parent.name
-    
+            all_target_entities[key] = owner
+
     return all_target_entities
 
 
@@ -1887,18 +1891,16 @@ def validate_table_id_uniqueness_across_directory(
     if not current_orch_rows:
         return
 
-    # metadata/<TriggerName>.Notebook/notebook-content.sql
-    if not current_file.parent.name.endswith('.Notebook'):
-        return  # Not in expected format
-    
-    current_notebook_name = current_file.parent.name
+    current_notebook_name = (
+        current_file.parent.name if current_file.parent.name.endswith('.Notebook') else current_file.name
+    )
     
     # Use precomputed map if available, otherwise compute on the fly
     if precomputed_table_id_map is not None:
         all_table_ids = precomputed_table_id_map
     else:
         # Fallback: compute the map for single-file validation
-        directory = current_file.parent.parent  # Go up to metadata/
+        directory = current_file.parent.parent if current_file.parent.name.endswith('.Notebook') else current_file.parent
         all_table_ids = precompute_cross_file_table_ids(directory)
 
     # Check current file's Table_IDs against other files (exclude self)
@@ -1939,18 +1941,16 @@ def validate_target_entity_uniqueness_across_directory(
     if not current_orch_rows:
         return
 
-    # metadata/<TriggerName>.Notebook/notebook-content.sql
-    if not current_file.parent.name.endswith('.Notebook'):
-        return  # Not in expected format
-    
-    current_notebook_name = current_file.parent.name
+    current_notebook_name = (
+        current_file.parent.name if current_file.parent.name.endswith('.Notebook') else current_file.name
+    )
     
     # Use precomputed map if available, otherwise compute on the fly
     if precomputed_target_entity_map is not None:
         all_target_entities = precomputed_target_entity_map
     else:
         # Fallback: compute the map for single-file validation
-        directory = current_file.parent.parent  # Go up to metadata/
+        directory = current_file.parent.parent if current_file.parent.name.endswith('.Notebook') else current_file.parent
         all_target_entities = precompute_cross_file_target_entities(directory)
 
     # Check current file's target entities against other files (exclude self)
@@ -3813,8 +3813,20 @@ def find_notebook_path(notebook_name: str, sql_file_path: Path) -> Optional[Path
     
     sql_dir = sql_file_path.parent
     workspace_folder = infer_workspace_folder(sql_file_path)
-    
-    # Try each notebook name variation
+
+    # Preferred Databricks layout: <engine_folder>/custom_functions/<name>.py
+    candidates_flat = [
+        workspace_folder / 'custom_functions' / f'{notebook_name}.py',
+        sql_dir.parent / 'custom_functions' / f'{notebook_name}.py',
+    ]
+    if not notebook_name.startswith('NB_'):
+        candidates_flat.append(workspace_folder / 'custom_functions' / f'NB_{notebook_name}.py')
+        candidates_flat.append(sql_dir.parent / 'custom_functions' / f'NB_{notebook_name}.py')
+    for cand in candidates_flat:
+        if cand.exists():
+            return cand
+
+    # Try each notebook name variation (legacy .Notebook layout)
     for nb_name in notebook_variations:
         # Common search locations
         search_paths = [
@@ -5266,15 +5278,6 @@ def validate_custom_transformation_function_notebooks(
                 suggestion="Create the notebook file or verify the notebook name is correct.")
             continue
         
-        # Validate .platform file for the custom notebook (Rules 70-72: existence, displayName, logicalId GUID format)
-        notebook_folder = notebook_path.parent
-        validate_platform_file_for_notebook_folder(
-            result, notebook_folder,
-            table_id=table_id,
-            line_number=line_number,
-            context_prefix=f"Table_ID {table_id}, notebook '{notebook_name}': ",
-        )
-        
         # Read and parse notebook content
         try:
             notebook_content = notebook_path.read_text(encoding='utf-8')
@@ -5298,15 +5301,6 @@ def validate_custom_transformation_function_notebooks(
         import_scope_issues = validate_custom_notebook_import_scope(notebook_content, notebook_name)
         for severity, message, suggestion in import_scope_issues:
             result.add_issue(severity, 'custom_notebook_import_scope',
-                f"Table_ID {table_id}, notebook '{notebook_name}': {message}",
-                table_id=table_id,
-                line_number=line_number,
-                suggestion=suggestion)
-        
-        # Validate Python notebook lakehouse header
-        header_issues = validate_python_notebook_lakehouse_header(notebook_content, notebook_name)
-        for severity, message, suggestion in header_issues:
-            result.add_issue(severity, 'python_notebook_lakehouse_header',
                 f"Table_ID {table_id}, notebook '{notebook_name}': {message}",
                 table_id=table_id,
                 line_number=line_number,
@@ -5608,187 +5602,124 @@ def validate_customer_clone_context(result: ValidationResult, file_path: Path) -
 
 def find_datastore_config_path(file_path: Path, environment: str = "DEV") -> Optional[Path]:
     """
-    Locate a datastore configuration notebook in the workspace.
+    Locate a datastore configuration JSON file in the batch engine folder.
 
-    The file must match the environment-specific notebook path:
-    <workspace>/datastores/datastore_<ENV>.Notebook/notebook-content.sql
+    The file must match the environment-specific JSON path:
+    <engine_folder>/datastores/datastore_<ENV>.json
 
     Discovery order:
-    1. Inferred workspace folder (derived from file_path: metadata_*.Notebook -> metadata -> workspace)
-    2. Git root scoped to the same workspace folder name
-    3. Git root wildcard (fallback, but only if no ambiguity)
+    1. Inferred workspace/engine folder (derived from file_path: metadata/... -> parent)
+    2. Git root wildcard (fallback, but only if no ambiguity)
 
-    When git root cannot be determined (e.g., temp/test paths), this also checks the
-    inferred workspace root directly.
-    
     Args:
         file_path: Path to the metadata SQL file being validated
         environment: Target environment (DEV, QA, PROD). Defaults to DEV.
-        
+
     Returns:
-        Path to the matching datastore_<ENV>.Notebook/notebook-content.sql file, or None if not found
+        Path to the matching datastore_<ENV>.json file, or None if not found
     """
     env_upper = environment.upper()
-    env_pattern = f"datastore_{env_upper}.Notebook"
+    filename = f"datastore_{env_upper}.json"
     git_root = find_git_root(file_path)
     workspace_dir = infer_workspace_folder(file_path)
 
-    print(f"   Datastore discovery: workspace_dir={workspace_dir.name}, environment={env_upper}")
-
-    # 1. Direct check in the inferred workspace folder (highest priority, most specific)
+    # 1. Direct check in the inferred workspace/engine folder
     if workspace_dir.exists():
-        direct_match = workspace_dir / "datastores" / env_pattern / "notebook-content.sql"
+        direct_match = workspace_dir / "datastores" / filename
         if direct_match.exists():
-            print(f"   Datastore config found (workspace-scoped): {direct_match}")
             return direct_match
 
     # 2. If we have a git root, try scoped search using workspace folder name first
     if git_root:
-        workspace_name = workspace_dir.name
-        scoped_match = git_root / workspace_name / "datastores" / env_pattern / "notebook-content.sql"
+        scoped_match = git_root / workspace_dir.name / "datastores" / filename
         if scoped_match.exists():
-            print(f"   Datastore config found (git-root-scoped): {scoped_match}")
             return scoped_match
 
         # 3. Fallback: wildcard search from git root, but error if ambiguous
-        matches = list(git_root.glob(f"*/datastores/{env_pattern}/notebook-content.sql"))
+        matches = list(git_root.glob(f"*/datastores/{filename}"))
         if len(matches) == 1:
-            print(f"   Datastore config found (git-root-fallback): {matches[0]}")
             return matches[0]
         if len(matches) > 1:
-            folder_names = [str(m.parent.parent.parent.name) for m in matches]
-            print(f"   Datastore config ERROR: multiple matches in folders: {', '.join(sorted(folder_names))}")
+            folder_names = sorted({m.parent.parent.name for m in matches})
             raise ValueError(
-                f"Multiple datastore configuration notebooks found for environment '{environment}' "
-                f"in folders: {', '.join(sorted(folder_names))}. "
-                f"Use --base-dir to specify which workspace folder to use, or ensure your metadata "
-                f"notebooks are inside the correct workspace folder."
+                f"Multiple datastore configuration files found for environment '{environment}' "
+                f"in folders: {', '.join(folder_names)}. "
+                f"Use --base-dir to specify which engine folder to use."
             )
 
-    print(f"   Datastore config NOT FOUND for environment '{env_upper}'")
     return None
 
 
 def get_defined_datastores_from_config(datastore_config_path: Path) -> Set[str]:
     """
-    Read the datastore configuration SQL file and extract all defined datastore names.
-    
-    Parses INSERT INTO [dbo].[Datastore_Configuration] statements and extracts the
-    Datastore_Name values from the VALUES clause.
-    
+    Read the datastore configuration JSON file and extract all defined datastore names.
+
+    Supported JSON shapes (datastore_<ENV>.json):
+      - Top-level medallion layers under "layers": { "bronze": {...}, "silver": {...}, ... }
+      - Top-level "metadata": { ... } block
+      - Top-level "external_datastores": { "<name>": {...}, ... }
+      - Any other top-level dict keyed by datastore name (for backward compatibility)
+
+    Reserved top-level keys (environment/workspace metadata, branch overrides, variables)
+    are ignored.
+
     Args:
-        datastore_config_path: Path to the datastore_<ENV>.Notebook/notebook-content.sql file
-        
+        datastore_config_path: Path to the datastore_<ENV>.json file
+
     Returns:
         set: Set of datastore names defined in the configuration (lowercase)
     """
     if not datastore_config_path or not datastore_config_path.exists():
         return set()
-    
+
     try:
-        content = datastore_config_path.read_text(encoding='utf-8')
-        
-        # Extract datastore names from INSERT statements
-        # Pattern matches VALUES rows like: ('bronze', 'Lakehouse', ...)
-        # The first value in each row is the Datastore_Name
-        datastore_names = set()
-        
-        # Find INSERT INTO Datastore_Configuration
-        in_insert = False
-        in_values = False
-        
-        for line in content.split('\n'):
-            line_stripped = line.strip()
-            
-            # Skip comments
-            if line_stripped.startswith('--'):
-                continue
-            
-            # Detect start of INSERT INTO Datastore_Configuration
-            if 'INSERT INTO' in line.upper() and 'DATASTORE_CONFIGURATION' in line.upper():
-                in_insert = True
-                # Check if VALUES is on the same line
-                if 'VALUES' in line.upper():
-                    in_values = True
-                continue
-            
-            # Detect VALUES keyword
-            if in_insert and 'VALUES' in line.upper():
-                in_values = True
-                continue
-            
-            # Parse VALUES rows - extract the first string value (Datastore_Name)
-            if in_values and line_stripped.startswith('('):
-                # Extract the first quoted value
-                # Pattern: ('datastore_name', ...)
-                match = re.match(r"\(\s*'([^']+)'", line_stripped)
-                if match:
-                    datastore_name = match.group(1).lower()
-                    datastore_names.add(datastore_name)
-            
-            # Detect end of INSERT (semicolon outside of string)
-            if in_insert and ';' in line_stripped and not line_stripped.startswith('--'):
-                in_insert = False
-                in_values = False
-        
-        return datastore_names
+        data = json.loads(datastore_config_path.read_text(encoding='utf-8'))
     except Exception:
         return set()
+
+    if not isinstance(data, dict):
+        return set()
+
+    names: Set[str] = set()
+    reserved = {
+        'variables', 'branch_overrides', 'workspace_url', 'workspace_id',
+        'environment', 'branch_name', 'sql_warehouse_id',
+    }
+
+    # Layers: each key under "layers" is a datastore (bronze/silver/gold/...)
+    layers = data.get('layers')
+    if isinstance(layers, dict):
+        for key in layers.keys():
+            names.add(key.lower())
+
+    # External datastores: each key under "external_datastores" is a datastore
+    ext = data.get('external_datastores')
+    if isinstance(ext, dict):
+        for key in ext.keys():
+            names.add(key.lower())
+
+    # "metadata" is itself a datastore name
+    if isinstance(data.get('metadata'), dict):
+        names.add('metadata')
+
+    # Backward compat: any other top-level dict that looks like a datastore entry
+    for key, value in data.items():
+        if key.lower() in reserved:
+            continue
+        if key.lower() in {'layers', 'external_datastores', 'metadata'}:
+            continue
+        if isinstance(value, dict):
+            names.add(key.lower())
+
+    return names
 
 
 def get_duplicate_datastores_from_config(datastore_config_path: Path) -> Dict[str, int]:
     """
-    Read the datastore configuration SQL file and detect duplicate Datastore_Name entries.
-    
-    The accelerator resolves datastores by name only (via Datastore_Name), so duplicate
-    names cause ambiguous resolution at runtime.
-    
-    Args:
-        datastore_config_path: Path to the datastore_<ENV>.Notebook/notebook-content.sql file
-        
-    Returns:
-        dict: Mapping of {datastore_name: count} for names appearing more than once (lowercase)
+    Duplicate datastore names are impossible in a JSON-keyed config file.
+    Kept as a no-op for backward compatibility with callers.
     """
-    if not datastore_config_path or not datastore_config_path.exists():
-        return {}
-    
-    try:
-        content = datastore_config_path.read_text(encoding='utf-8')
-        all_names: list = []
-        
-        in_insert = False
-        in_values = False
-        
-        for line in content.split('\n'):
-            line_stripped = line.strip()
-            
-            if line_stripped.startswith('--'):
-                continue
-            
-            if 'INSERT INTO' in line.upper() and 'DATASTORE_CONFIGURATION' in line.upper():
-                in_insert = True
-                if 'VALUES' in line.upper():
-                    in_values = True
-                continue
-            
-            if in_insert and 'VALUES' in line.upper():
-                in_values = True
-                continue
-            
-            if in_values and line_stripped.startswith('('):
-                match = re.match(r"\(\s*'([^']+)'", line_stripped)
-                if match:
-                    all_names.append(match.group(1).lower())
-            
-            if in_insert and ';' in line_stripped and not line_stripped.startswith('--'):
-                in_insert = False
-                in_values = False
-        
-        # Return only names that appear more than once
-        counts = Counter(all_names)
-        return {name: count for name, count in counts.items() if count > 1}
-    except Exception:
-        return {}
+    return {}
 
 
 def count_datastore_config_inserts(datastore_config_path: Path) -> Tuple[int, int]:
@@ -5930,29 +5861,25 @@ def validate_datastore_configuration(result: ValidationResult, orch_rows: list, 
             str(ex),
             suggestion=(
                 "🔴 ACTION REQUIRED - Disambiguate datastore configuration:\n"
-                "   Your repo has multiple workspace folders with datastore notebooks.\n"
-                "   The validator doesn't know which one applies to this metadata file.\n"
-                "   \n"
-                "   Fix: Run the validator with --base-dir <folder> to specify your workspace folder,\n"
-                "   or ensure your metadata notebooks live inside the correct workspace folder\n"
-                "   (the datastores/ sibling folder will then be found automatically)."
+                "   Your repo has multiple engine folders with datastore_<ENV>.json files.\n"
+                "   Run with --base-dir <folder> to specify the correct engine folder,\n"
+                "   or set FDP_BATCH_ENGINE_FOLDER."
             ))
         return
     
     if not datastore_config_path:
         result.add_issue('error', 'datastore_config',
-            "Could not locate datastore configuration notebook. Datastore validation cannot continue.",
+            "Could not locate datastore configuration file. Datastore validation cannot continue.",
             suggestion=(
                 "🔴 ACTION REQUIRED - Create datastore configuration:\n"
-                "   Target_Datastore in metadata = your catalog table name\n"
+                "   Target_Datastore in metadata = top-level key in datastore_<ENV>.json\n"
                 "   \n"
-                "   Expected path: <workspace_folder>/datastores/datastore_<ENV>.Notebook/notebook-content.sql\n"
+                "   Expected path: <engine_folder>/datastores/datastore_<ENV>.json\n"
                 "   \n"
-                "   Create a datastore configuration notebook with INSERT statements like:\n"
-                "   INSERT INTO [dbo].[Datastore_Configuration]\n"
-                "       (Datastore_Name, Datastore_Type, Datastore_ID, Workspace_ID, Workspace_Name, Medallion_Layer, Endpoint, Connection_ID)\n"
-                "   VALUES\n"
-                "   ('bronze', 'Lakehouse', '<guid>', '<workspace-guid>', '<workspace-name>', 'Bronze', NULL, NULL),"
+                "   The JSON file should have one top-level object per datastore, e.g.:\n"
+                '   { "bronze": { "catalog": "my_catalog", "schema": "bronze" },\n'
+                '     "silver": { "catalog": "my_catalog", "schema": "silver" },\n'
+                '     "gold":   { "catalog": "my_catalog", "schema": "gold" } }'
             ))
         return
     
@@ -6725,14 +6652,10 @@ def validate_metadata_file(
             "Please save the file in VS Code (Ctrl+S) and re-run validation.")
         return result
 
-    # Databricks notebook Format Validation - runs early before other checks
-    # This validates kernel_info, dependencies, warehouse type, etc.
-    validate_notebook_format(result, content)
-
     sections = find_insert_sections(content)
 
     if not sections:
-        result.add_issue('error', 'structure', "No INSERT INTO dbo.Data_Pipeline_* statements found")
+        result.add_issue('error', 'structure', "No INSERT INTO Data_Pipeline_* statements found")
         return result
 
     orch_rows = []
@@ -6827,16 +6750,6 @@ def validate_metadata_file(
     # Always run validation, but pass is_template_repo flag so it can show appropriate warning
     validate_datastore_configuration(result, orch_rows, primary_rows, file_path, is_template_repo, environment)  # Validate datastores exist in Datastore_Configuration table
 
-    # Platform File Validation
-    validate_platform_file(result, file_path)  # Existence, displayName, logicalId format
-    validate_platform_uniqueness_across_workspace(result, file_path, precomputed_logical_id_map)  # logicalId uniqueness
-
-    # Warehouse Reference Validation
-    validate_warehouse_reference(result, file_path, content)  # default_warehouse/known_warehouses match warehouse .platform
-
-    # Note: validate_notebook_format is called earlier in the function
-    # to ensure kernel_info, dependencies, and warehouse type are checked before INSERT statement validation
-
     return result
 
 
@@ -6865,13 +6778,13 @@ def main():
             metadata_dir = repo_root / args.base_dir / "metadata"
             if not metadata_dir.exists():
                 print(f"Error: Metadata directory not found: {metadata_dir}")
-                print(f"Expected: {metadata_dir}/metadata_<TriggerName>.Notebook/notebook-content.sql")
+                print(f"Expected: {metadata_dir}/metadata_<TriggerName>.sql")
                 sys.exit(1)
 
-            files = list(metadata_dir.glob("*.Notebook/notebook-content.sql"))
+            files = list(metadata_dir.glob("*.sql")) + list(metadata_dir.glob("*.Notebook/notebook-content.sql"))
             if not files:
-                print(f"No metadata notebooks found in {metadata_dir}")
-                print(f"Expected: {metadata_dir}/metadata_<TriggerName>.Notebook/notebook-content.sql")
+                print(f"No metadata SQL files found in {metadata_dir}")
+                print(f"Expected: {metadata_dir}/metadata_<TriggerName>.sql")
                 sys.exit(1)
         else:
             # Auto-discover metadata directories without defaulting to any specific base dir.
@@ -6890,20 +6803,20 @@ def main():
 
             candidates_with_files = []
             for candidate in candidate_dirs:
-                candidate_files = list(candidate.glob("*.Notebook/notebook-content.sql"))
+                candidate_files = list(candidate.glob("*.sql")) + list(candidate.glob("*.Notebook/notebook-content.sql"))
                 if candidate_files:
                     candidates_with_files.append((candidate, candidate_files))
 
             if not candidates_with_files:
-                print("Error: Metadata directories were found, but no metadata notebooks were found in any of them.")
+                print("Error: Metadata directories were found, but no metadata SQL files were found in any of them.")
                 for candidate in candidate_dirs:
                     print(f"  - {candidate}")
-                print("Expected: <base-dir>/metadata/metadata_<TriggerName>.Notebook/notebook-content.sql")
+                print("Expected: <base-dir>/metadata/metadata_<TriggerName>.sql")
                 print("Use --base-dir <folder> to target the intended workspace folder.")
                 sys.exit(1)
 
             if len(candidates_with_files) > 1:
-                print("Error: Multiple metadata directories contain notebooks. Specify --base-dir to disambiguate.")
+                print("Error: Multiple metadata directories contain SQL files. Specify --base-dir to disambiguate.")
                 for candidate, _ in candidates_with_files:
                     print(f"  - {candidate}")
                 sys.exit(1)
@@ -6920,13 +6833,8 @@ def main():
     precomputed_target_entity_map = None
     
     if len(files) > 1:
-        # Find repo root from the first file for logicalId map
-        repo_root_path = find_repo_root(files[0])
-        precomputed_logical_id_map = precompute_logical_id_map(repo_root_path)
-        
-        # Find metadata directory for cross-file Table_ID and Target_Entity maps
-        # All files should be in the same metadata directory
-        metadata_dir = files[0].parent.parent  # Go from notebook-content.sql -> .Notebook -> metadata/
+        first = files[0]
+        metadata_dir = first.parent.parent if first.parent.name.endswith('.Notebook') else first.parent
         precomputed_table_id_map = precompute_cross_file_table_ids(metadata_dir)
         precomputed_target_entity_map = precompute_cross_file_target_entities(metadata_dir)
 

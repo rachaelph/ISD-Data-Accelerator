@@ -121,8 +121,10 @@ Configuration for copying data from external source systems.
 
 |Configuration Category|Configuration Name|Ingestion Patterns it's Required|Ingestion Patterns it's Optional|More Details|Accepted Values|
 | :-------- | :------- | :-------- | :-------- | :------- | :-------- |
-|source_details|source|All||Specifies the type of the source system for pipeline-owned staging in `PL_02`.|`azure_sql`, `sql_server`, `oracle`, `postgre_sql`, `my_sql`, `db2`, `rest_api`, `sftp`|
+|source_details|source|All||Specifies the type of the source system for pipeline-owned staging in `PL_02`.|`azure_sql`, `sql_server`, `oracle`, `postgre_sql`, `my_sql`, `db2`, `rest_api`, `sftp`, `file`|
 |source_details|datastore_name|All||Logical name of the external source registered under `external_datastores` in `databricks_batch_engine/datastores/datastore_<ENV>.json`. The runtime resolves the actual `Connection_Details` from the `Datastore_Configuration` Delta table at runtime (synced on `/fdp-04-commit`). This keeps metadata SQL environment-agnostic.|Datastore name such as `oracle_sales`, `sftp_uploads`|
+|source_details|file_extension|`file`||File extension driving the batch reader selection.|`csv`, `tsv`, `txt`, `parquet`, `json`, `xml`, `xls`, `xlsx`|
+|source_details|wildcard_folder_path|`file`||Relative folder path (under the configured source volume) containing files to ingest. Supports wildcards.||
 |source_details|database_name|`azure_sql`, `sql_server`||Name of the source database.||
 |source_details|query|`azure_sql`, `sql_server`, `oracle`, `postgre_sql`, `my_sql`, `db2`||SQL query to extract data. Use if `table_name` is not sufficient.||
 |source_details|schema_name|`azure_sql`, `sql_server`, `oracle`, `postgre_sql`, `my_sql`, `db2`||Schema name in the source database.||

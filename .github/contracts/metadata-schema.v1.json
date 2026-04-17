@@ -48,6 +48,7 @@
       "encoding",
       "enforce_not_null",
       "exit_after_staging",
+      "file_extension",
       "file_format",
       "file_has_header_row",
       "header",
@@ -596,6 +597,7 @@
     "source": [
       "azure_sql",
       "db2",
+      "file",
       "my_sql",
       "oracle",
       "postgre_sql",

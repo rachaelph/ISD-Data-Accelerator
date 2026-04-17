@@ -44,7 +44,7 @@ WHERE Trigger_Name = 'daily_load';
 -- =====================================================================
 -- STEP 2: Orchestration Metadata
 -- =====================================================================
-INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 1001, 'silver', 'housing_price', 'MedInc', 'batch', 1),
 ('daily_load', 2, 1002, 'silver', 'london_taxi', 'distance,pickup_latitude,pickup_longitude', 'batch', 1),
