@@ -145,7 +145,7 @@ def empty_result():
 def sample_orchestration_sql():
     """Sample SQL with orchestration INSERT."""
     return """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1),
@@ -157,7 +157,7 @@ VALUES
 def sample_primary_config_sql():
     """Sample SQL with primary config INSERT."""
     return """
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'source', 'azure_sql'),
@@ -170,7 +170,7 @@ VALUES
 def sample_advanced_config_sql():
     """Sample SQL with advanced config INSERT."""
     return """
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration
+INSERT INTO Data_Pipeline_Advanced_Configuration
 (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (100, 'data_transformation_steps', 'derived_column', 1, 'column_name', 'full_name'),
@@ -186,20 +186,20 @@ def complete_metadata_sql():
     """Complete metadata SQL with all three sections."""
     return """
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
 
 -- Primary Configuration
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'source', 'azure_sql'),
 (100, 'target_details', 'merge_type', 'merge')
 
 -- Advanced Configuration
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration
+INSERT INTO Data_Pipeline_Advanced_Configuration
 (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'status = ''active''')
@@ -598,7 +598,7 @@ class TestValidateSqlSyntax:
     def test_valid_syntax_with_commas(self, empty_result):
         """Test that valid SQL with proper commas passes."""
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1),
 ('load', 2, 101, 'bronze', 'dbo.t2', '', 'batch', 1)
 """
@@ -610,7 +610,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
     def test_missing_comma_between_rows(self, empty_result):
         """Test detection of missing comma between VALUES rows."""
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 ('load', 2, 101, 'bronze', 'dbo.t2', '', 'batch', 1)
 """
@@ -622,7 +622,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
     def test_comments_between_rows(self, empty_result):
         """Test that comments between rows don't trigger false positives."""
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1),
 -- Comment line
 ('load', 2, 101, 'bronze', 'dbo.t2', '', 'batch', 1)
@@ -835,7 +835,7 @@ VALUES
         assert len(errors) == 1
 
     def test_target_entity_without_schema_warning(self, empty_result):
-        """Test warning when Target_Entity doesn't include schema."""
+        """Bare Target_Entity is allowed (runtime qualifies via Datastore_Configuration)."""
         rows = [
             {'trigger_name': 'load', 'order': 1, 'table_id': 100, 'target_datastore': 'bronze',
              'target_entity': 'customers', 'primary_keys': '', 'processing_method': 'batch',
@@ -843,7 +843,7 @@ VALUES
         ]
         validate_orchestration(empty_result, rows)
         warnings = [i for i in empty_result.issues if i.severity == 'warning' and 'schema' in i.message.lower()]
-        assert len(warnings) == 1
+        assert len(warnings) == 0
 
     def test_target_entity_with_schema(self, empty_result):
         """Test no warning when Target_Entity includes schema."""
@@ -1890,19 +1890,19 @@ class TestValidateMetadataFile:
         """Test validation of a complete valid metadata file."""
         sql_content = """
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
 
 -- Primary Configuration
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'target_details', 'merge_type', 'merge')
 
 -- Advanced Configuration
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration
+INSERT INTO Data_Pipeline_Advanced_Configuration
 (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'status = 1')
@@ -1952,7 +1952,7 @@ VALUES
     def test_validate_file_with_multiple_errors(self, tmp_path):
         """Test validation captures multiple errors."""
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'invalid_store', 'customers', '', 'invalid_method', 2)
@@ -1966,12 +1966,12 @@ VALUES
     def test_validate_file_with_sql_escaped_quotes(self, tmp_path):
         """Test validation handles SQL escaped quotes correctly."""
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'id', 'batch', 1)
 
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration
+INSERT INTO Data_Pipeline_Advanced_Configuration
 (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'status = ''active''')
@@ -2323,7 +2323,7 @@ class TestCrossFileTableIdUniqueness:
     def test_get_table_ids_from_file_valid(self, tmp_path):
         """Test extracting Table_IDs from a valid metadata file."""
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1),
@@ -2351,7 +2351,7 @@ VALUES
     def test_get_table_ids_from_file_no_orchestration(self, tmp_path):
         """Test extracting Table_IDs from file with no orchestration section."""
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'source', 'azure_sql')
@@ -2377,7 +2377,7 @@ VALUES
     def test_no_conflict_single_file(self, tmp_path):
         """Test no conflict when only one metadata file exists."""
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2396,7 +2396,7 @@ VALUES
         """Test no conflict when files have different Table_IDs."""
         # First file with Table_ID 100
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2406,7 +2406,7 @@ VALUES
 
         # Second file with Table_ID 200
         file2_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 200, 'silver', 'dbo.orders', 'order_id', 'batch', 1)
@@ -2432,7 +2432,7 @@ VALUES
         nb1 = metadata_dir / "metadata_customers.Notebook"
         nb1.mkdir()
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2465,7 +2465,7 @@ VALUES
         nb1 = metadata_dir / "metadata_existing.Notebook"
         nb1.mkdir()
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1),
@@ -2502,7 +2502,7 @@ VALUES
         nb1 = metadata_dir / "metadata_existing.Notebook"
         nb1.mkdir()
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2531,7 +2531,7 @@ VALUES
         # Create a non-metadata file with Table_ID 100
         non_metadata = tmp_path / "other_script.sql"
         non_metadata_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2553,7 +2553,7 @@ VALUES
     def test_empty_orch_rows_no_validation(self, tmp_path):
         """Test no validation when orch_rows is empty."""
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2581,7 +2581,7 @@ VALUES
         nb1 = metadata_dir / "metadata_sales_data.Notebook"
         nb1.mkdir()
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -2612,7 +2612,7 @@ VALUES
         nb1 = metadata_dir / "metadata_existing.Notebook"
         nb1.mkdir()
         file1_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'silver', 'dbo.customers', 'customer_id', 'batch', 1)
@@ -3325,7 +3325,7 @@ class TestTargetEntityUniquenessAcrossDirectory:
         nb1 = metadata_dir / "metadata_source1.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load1', 1, 100, 'silver', 'dbo.table_a', '', 'batch', 1)
 """)
         # Second notebook with different target entity dbo.table_b
@@ -3333,7 +3333,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb2.mkdir()
         file2 = nb2 / "notebook-content.sql"
         file2.write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load2', 1, 200, 'silver', 'dbo.table_b', '', 'batch', 1)
 """)
         
@@ -3353,7 +3353,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1 = metadata_dir / "metadata_source1.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load1', 1, 100, 'silver', 'dbo.customers', '', 'batch', 1)
 """)
         # Second notebook - leave empty since we pass orch_rows directly
@@ -3381,7 +3381,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1 = metadata_dir / "metadata_source1.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load1', 1, 100, 'silver', 'dbo.customers', '', 'batch', 1)
 """)
 
@@ -3417,8 +3417,8 @@ class TestDeleteStatementValidations:
         """Test that DELETE with Trigger_Name subquery passes."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration 
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'my_trigger')
+DELETE FROM Data_Pipeline_Advanced_Configuration 
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'my_trigger')
 """
         validate_delete_statements(result, content)
         errors = [i for i in result.issues if 'hardcoded' in i.message.lower()]
@@ -3428,7 +3428,7 @@ WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Tr
         """Test that DELETE with hardcoded Table_IDs raises error."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (100, 101, 102)
+DELETE FROM Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (100, 101, 102)
 """
         validate_delete_statements(result, content)
         errors = [i for i in result.issues if 'Trigger_Name' in i.message]
@@ -3438,9 +3438,9 @@ DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (100, 101
         """Test correct DELETE order passes validation."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
-DELETE FROM dbo.Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
+DELETE FROM Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
 """
         validate_delete_order(result, content)
         errors = [i for i in result.issues if 'delete_order' in i.category]
@@ -3450,9 +3450,9 @@ DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
         """Test wrong DELETE order raises error."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
-DELETE FROM dbo.Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
+DELETE FROM Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
 """
         validate_delete_order(result, content)
         errors = [i for i in result.issues if 'delete_order' in i.category]
@@ -3462,9 +3462,9 @@ DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT T
         """Test all three DELETE statements present passes."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
-DELETE FROM dbo.Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
+DELETE FROM Data_Pipeline_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test')
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
 """
         validate_delete_presence(result, content)
         warnings = [i for i in result.issues if 'missing_delete' in i.category]
@@ -3474,7 +3474,7 @@ DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
         """Test missing DELETE statement raises warning."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'test'
 """
         validate_delete_presence(result, content)
         warnings = [i for i in result.issues if 'missing_delete' in i.category]
@@ -3493,7 +3493,7 @@ class TestCommentStyleValidation:
         result = ValidationResult(file_path="test.sql")
         content = """
 -- This is a valid comment
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 """
         validate_comment_style(result, content)
@@ -3505,7 +3505,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         result = ValidationResult(file_path="test.sql")
         content = """
 /* This is a block comment */
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 """
         validate_comment_style(result, content)
@@ -4749,13 +4749,13 @@ class TestInsertStatementGrouping:
         """Test that single INSERT per table passes validation."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('load', 1, 100, 'bronze', 'dbo.t1', '', 'batch', 1),
 ('load', 2, 101, 'bronze', 'dbo.t2', '', 'batch', 1)
 
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'source', 'azure_sql'),
@@ -4769,12 +4769,12 @@ VALUES
         """Test that multiple INSERTs for same table generates error."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'source', 'azure_sql')
 
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (101, 'source_details', 'source', 'azure_sql')
@@ -4791,7 +4791,7 @@ VALUES
         # Generate content with 1001 rows
         rows = ",\n".join([f"(100, 'source_details', 'name_{i}', 'value_{i}')" for i in range(1001)])
         content = f"""
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 {rows}
@@ -4855,7 +4855,7 @@ class TestMultilineValuesRows:
         """Test that single-line rows pass validation."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1),
 ('load', 2, 101, 'bronze', 'dbo.t2', '', 'batch', 1)
 """
@@ -4869,7 +4869,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         # Row starts with ( but doesn't end with ) or ), - it continues on next line
         # Note: VALUES must be on its own line for the validator to track VALUES blocks
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 VALUES
 ('load', 1, 100, 'bronze', 'dbo.table_with_very_long_name',
     '', 'batch', 1)
@@ -4883,10 +4883,10 @@ VALUES
         """Test that VALUES block detection ends at new statement."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration VALUES
+INSERT INTO Data_Pipeline_Primary_Configuration VALUES
 (100, 'source_details', 'source', 'azure_sql')
 """
         validate_multiline_values_rows(result, content)
@@ -4905,13 +4905,13 @@ class TestFileSectionOrder:
         """Test that correct section order passes validation."""
         result = ValidationResult(file_path="test.sql")
         content = """
-DELETE FROM dbo.Data_Pipeline_Advanced_Configuration WHERE Trigger_Name = 'load'
-DELETE FROM dbo.Data_Pipeline_Primary_Configuration WHERE Trigger_Name = 'load'
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'load'
+DELETE FROM Data_Pipeline_Advanced_Configuration WHERE Trigger_Name = 'load'
+DELETE FROM Data_Pipeline_Primary_Configuration WHERE Trigger_Name = 'load'
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'load'
 
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration VALUES (100, 'source_details', 'source', 'azure_sql')
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration VALUES (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'x > 0')
+INSERT INTO Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Primary_Configuration VALUES (100, 'source_details', 'source', 'azure_sql')
+INSERT INTO Data_Pipeline_Advanced_Configuration VALUES (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'x > 0')
 """
         validate_file_section_order(result, content)
         warnings = [i for i in result.issues if i.category == 'section_order']
@@ -4921,8 +4921,8 @@ INSERT INTO dbo.Data_Pipeline_Advanced_Configuration VALUES (100, 'data_transfor
         """Test that wrong INSERT order generates warning."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration VALUES (100, 'source_details', 'source', 'azure_sql')
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Primary_Configuration VALUES (100, 'source_details', 'source', 'azure_sql')
+INSERT INTO Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 """
         validate_file_section_order(result, content)
         warnings = [i for i in result.issues if i.category == 'section_order']
@@ -4933,8 +4933,8 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'd
         """Test that DELETE after INSERT generates warning."""
         result = ValidationResult(file_path="test.sql")
         content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
-DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'load'
+INSERT INTO Data_Pipeline_Orchestration VALUES ('load', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+DELETE FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'load'
 """
         validate_file_section_order(result, content)
         warnings = [i for i in result.issues if i.category == 'section_order']
@@ -8035,15 +8035,15 @@ class TestPlatformFileValidation:
         notebook_dir.mkdir(parents=True)
         sql_file = notebook_dir / "notebook-content.sql"
         # Write minimal valid SQL
-        sql_content = '''DELETE FROM dbo.Data_Pipeline_Orchestration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
-DELETE FROM dbo.Data_Pipeline_Primary_Config WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
-DELETE FROM dbo.Data_Pipeline_Advanced_Config WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
+        sql_content = '''DELETE FROM Data_Pipeline_Orchestration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
+DELETE FROM Data_Pipeline_Primary_Config WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
+DELETE FROM Data_Pipeline_Advanced_Config WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'FullTest')
 
-INSERT INTO dbo.Data_Pipeline_Orchestration (Table_ID, Trigger_Name, Target_Datastore, Target_Entity, Processing_Method, Order_Of_Operations, Is_Active)
+INSERT INTO Data_Pipeline_Orchestration (Table_ID, Trigger_Name, Target_Datastore, Target_Entity, Processing_Method, Order_Of_Operations, Is_Active)
 VALUES
 (1, 'FullTest', 'bronze', 'test_table', 'batch', 100, 1)
 
-INSERT INTO dbo.Data_Pipeline_Primary_Config (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
+INSERT INTO Data_Pipeline_Primary_Config (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (1, 'source_details', 'test', 1, 'source', 'parquet')
 '''
@@ -8393,7 +8393,7 @@ class TestValidateNotebookFormat:
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('Test', 1, 100, 'bronze', 'dbo.test', 'id', 'batch', 1)
@@ -8423,7 +8423,7 @@ VALUES
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
 -- METADATA ********************
 
@@ -8449,7 +8449,7 @@ INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'br
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
 -- METADATA ********************
 
@@ -8477,7 +8477,7 @@ INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'br
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
 -- METADATA ********************
 
@@ -8503,7 +8503,7 @@ INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'br
 -- META   }
 -- META }
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
 -- METADATA ********************
 
@@ -8531,7 +8531,7 @@ INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'br
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 '''
         validate_notebook_format(empty_result, content)
         errors = [i for i in empty_result.issues if i.category == 'notebook_format']
@@ -8553,7 +8553,7 @@ INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'br
 
 -- CELL ********************
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
+INSERT INTO Data_Pipeline_Metadata_Orchestration VALUES ('Test', 1, 100, 'bronze', 'dbo.t', '', 'batch', 1)
 
 -- METADATA ********************
 
@@ -8615,7 +8615,7 @@ class TestPrecomputeFunctions:
         notebook_folder.mkdir()
         
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'bronze', 'dbo.customers', 'customer_id', 'batch', 1),
@@ -8639,7 +8639,7 @@ VALUES
         nb1 = metadata_dir / "metadata_Sales.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t1', '', 'batch', 1)
 """)
         
@@ -8647,7 +8647,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb2 = metadata_dir / "metadata_HR.Notebook"
         nb2.mkdir()
         (nb2 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 200, 'bronze', 'dbo.t2', '', 'batch', 1),
 ('load', 2, 201, 'silver', 'dbo.t3', '', 'batch', 1)
 """)
@@ -8677,7 +8677,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         notebook_folder.mkdir()
         
         sql_content = """
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('daily_load', 1, 100, 'bronze', 'dbo.customers', 'customer_id', 'batch', 1),
@@ -8700,7 +8700,7 @@ VALUES
         nb1 = metadata_dir / "metadata_Sales.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.customers', '', 'batch', 1)
 """)
         
@@ -8708,7 +8708,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb2 = metadata_dir / "metadata_HR.Notebook"
         nb2.mkdir()
         (nb2 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 200, 'bronze', 'dbo.employees', '', 'batch', 1)
 """)
         
@@ -8804,7 +8804,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1 = metadata_dir / "metadata_Sales.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t1', '', 'batch', 1)
 """)
         
@@ -8836,7 +8836,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1 = metadata_dir / "metadata_Sales.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.customers', '', 'batch', 1)
 """)
         
@@ -8914,7 +8914,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1.mkdir()
         nb1_sql = nb1 / "notebook-content.sql"
         nb1_sql.write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.customers', '', 'batch', 1)
 """)
         
@@ -8974,21 +8974,21 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
 
 -- CELL ********************
 
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test')
-DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test')
-DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test'
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test')
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test')
+DELETE FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'Test'
 
-INSERT INTO dbo.Data_Pipeline_Orchestration
+INSERT INTO Data_Pipeline_Orchestration
 (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('Test', 1, 100, 'bronze', 'dbo.test_table', '', 'batch', 1)
 
-INSERT INTO dbo.Data_Pipeline_Primary_Configuration
+INSERT INTO Data_Pipeline_Primary_Configuration
 (Table_ID, Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'source_details', 'datastore_name', 'bronze')
 
-INSERT INTO dbo.Data_Pipeline_Advanced_Configuration
+INSERT INTO Data_Pipeline_Advanced_Configuration
 (Table_ID, Category, Configuration_Name, Instance_Number, Attribute, Value)
 VALUES
 (100, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'status = 1')
@@ -9033,7 +9033,7 @@ class TestPrecomputePerformanceScenarios:
             nb.mkdir()
             table_id = 100 + i * 10
             (nb / "notebook-content.sql").write_text(f"""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, {table_id}, 'bronze', 'dbo.entity{i}', '', 'batch', 1)
 """)
         
@@ -9053,7 +9053,7 @@ INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
         nb1 = metadata_dir / "metadata_A.Notebook"
         nb1.mkdir()
         (nb1 / "notebook-content.sql").write_text("""
-INSERT INTO dbo.Data_Pipeline_Orchestration VALUES
+INSERT INTO Data_Pipeline_Orchestration VALUES
 ('load', 1, 100, 'bronze', 'dbo.t1', '', 'batch', 1)
 """)
         

@@ -458,19 +458,19 @@ SAMPLE_METADATA = """
 -- =====================================================================
 -- DELETE existing records
 -- =====================================================================
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesAnalytics');
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesAnalytics');
 
-DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesAnalytics');
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesAnalytics');
 
-DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration
+DELETE FROM Data_Pipeline_Metadata_Orchestration
 WHERE Trigger_Name = 'SalesAnalytics';
 
 -- =====================================================================
 -- Orchestration
 -- =====================================================================
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
 ('SalesAnalytics', 1, 1001, 'bronze', 'dbo.raw_orders', 'order_id', 'batch', 1),
@@ -480,7 +480,7 @@ VALUES
 -- =====================================================================
 -- Primary Configuration
 -- =====================================================================
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 (1001, 'source_details', 'table_name', 'ERP.dbo.Orders'),
@@ -495,7 +495,7 @@ VALUES
 -- =====================================================================
 -- Advanced Configuration
 -- =====================================================================
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
 (1101, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'status != ''cancelled'''),
@@ -747,12 +747,12 @@ class TestEndToEnd:
         """
         # Metadata with NO custom functions
         simple_metadata = """
-        INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+        INSERT INTO Data_Pipeline_Metadata_Orchestration
         ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
         VALUES
         ('Test', 1, 1001, 'bronze', 'dbo.orders', 'order_id', 'batch', 1);
 
-        INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+        INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
         (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
         VALUES
         (1001, 'source_details', 'table_name', 'dbo.Orders'),

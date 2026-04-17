@@ -57,7 +57,7 @@ The following list describes the function of each orchestration component:
 ## Other Utility Jobs
 - **Exploratory Data Analysis Job**: Runs data profiling on landed data in Silver and Gold for use by data consumers
 
-> **Alerting:** For job failure alerts, configure scheduled job failure notifications in your Databricks workspace. For content-aware alerts (e.g., data quality issues or specific error patterns), query `dbo.Data_Pipeline_Logs` or `dbo.Data_Quality_Notifications` in the metadata warehouse.
+> **Alerting:** For job failure alerts, configure scheduled job failure notifications in your Databricks workspace. For content-aware alerts (e.g., data quality issues or specific error patterns), query `Data_Pipeline_Logs` or `Data_Quality_Notifications` in the metadata warehouse.
 
 ## Setting Up Triggers for Data Movement
 
@@ -103,12 +103,12 @@ Execute any Databricks notebook or job as part of your orchestrated data pipelin
 ### Example: Execute Notebook
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('ExecuteItem', '1', '42', 'gold', 'dbo.ml_predictions', 'execute_databricks_notebook','1');
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Reference the notebook by its Datastore_Configuration name (CI/CD safe — workspace URLs and paths live in datastore config per environment)
     ('42', 'source_details', 'datastore_name', 'ml_predictions_notebook')
@@ -131,12 +131,12 @@ To execute items in a different Databricks workspace than the orchestration job,
 
 ```sql
 -- Orchestration Table (use execute_databricks_notebook or execute_databricks_job)
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('ExecuteItem', '1', '42', 'gold', 'dbo.ml_predictions', 'execute_databricks_notebook','1');
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (42, 'source_details', 'datastore_name', 'ml_predictions_notebook')
 ```
@@ -153,14 +153,14 @@ VALUES
 **Sequential Execution:**
 ```sql
 -- Execute items in order using Order_Of_Operations
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('DataPipeline', 1, 42, 'bronze', 'raw_data', 'execute_databricks_job', 1),
     ('DataPipeline', 2, 43, 'silver', 'cleansed_data', 'execute_databricks_notebook', 1),
     ('DataPipeline', 3, 44, 'gold', 'aggregated_data', 'execute_databricks_notebook', 1)
 
 -- Each execute_databricks_* Table_ID needs a datastore_name in Primary Config
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (42, 'source_details', 'datastore_name', 'raw_data_job'),
     (43, 'source_details', 'datastore_name', 'cleansed_data_notebook'),
@@ -170,7 +170,7 @@ VALUES
 **Mixed with Framework Ingestion:**
 ```sql
 -- Combine execute_databricks_notebook/job with standard framework processing
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     -- Standard framework ingestion
     ('DataPipeline', 1, 10, 'bronze', 'dbo.sales', 'id', 'pipeline_stage_and_batch', 1),

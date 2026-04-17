@@ -21,7 +21,7 @@ SELECT
     Primary_Keys,
     Processing_Method,
     Ingestion_Active
-FROM dbo.Data_Pipeline_Metadata_Orchestration
+FROM Data_Pipeline_Metadata_Orchestration
 WHERE Table_ID = {Table_ID};
 ```
 > Present orchestration context: trigger, target, processing method, active status.
@@ -34,7 +34,7 @@ SELECT
     Configuration_Category,
     Configuration_Name,
     Configuration_Value
-FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
+FROM Data_Pipeline_Metadata_Primary_Configuration
 WHERE Table_ID = {Table_ID}
 ORDER BY Configuration_Category, Configuration_Name;
 ```
@@ -50,7 +50,7 @@ SELECT
     Configuration_Name_Instance_Number,
     Configuration_Attribute_Name,
     Configuration_Attribute_Value
-FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
+FROM Data_Pipeline_Metadata_Advanced_Configuration
 WHERE Table_ID = {Table_ID}
 ORDER BY Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name;
 ```
@@ -70,12 +70,12 @@ SELECT
     o.Ingestion_Active,
     pc_source.Configuration_Value AS Source_Table,
     pc_merge.Configuration_Value AS Merge_Type
-FROM dbo.Data_Pipeline_Metadata_Orchestration o
-LEFT JOIN dbo.Data_Pipeline_Metadata_Primary_Configuration pc_source
+FROM Data_Pipeline_Metadata_Orchestration o
+LEFT JOIN Data_Pipeline_Metadata_Primary_Configuration pc_source
     ON o.Table_ID = pc_source.Table_ID
     AND pc_source.Configuration_Category = 'source_details'
     AND pc_source.Configuration_Name = 'table_name'
-LEFT JOIN dbo.Data_Pipeline_Metadata_Primary_Configuration pc_merge
+LEFT JOIN Data_Pipeline_Metadata_Primary_Configuration pc_merge
     ON o.Table_ID = pc_merge.Table_ID
     AND pc_merge.Configuration_Category = 'target_details'
     AND pc_merge.Configuration_Name = 'merge_type'
@@ -91,7 +91,7 @@ ORDER BY o.Order_Of_Operations, o.Table_ID;
 SELECT
     Configuration_Name,
     Configuration_Value
-FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
+FROM Data_Pipeline_Metadata_Primary_Configuration
 WHERE Table_ID = {Table_ID}
   AND Configuration_Category = 'source_details'
 ORDER BY Configuration_Name;
@@ -105,7 +105,7 @@ ORDER BY Configuration_Name;
 SELECT
     Configuration_Name,
     Configuration_Value
-FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
+FROM Data_Pipeline_Metadata_Primary_Configuration
 WHERE Table_ID = {Table_ID}
   AND Configuration_Category = 'target_details'
 ORDER BY Configuration_Name;
@@ -121,7 +121,7 @@ SELECT
     Configuration_Name_Instance_Number AS Rule_Number,
     Configuration_Attribute_Name,
     Configuration_Attribute_Value
-FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
+FROM Data_Pipeline_Metadata_Advanced_Configuration
 WHERE Table_ID = {Table_ID}
   AND Configuration_Category = 'data_quality'
 ORDER BY Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name;
@@ -148,7 +148,7 @@ SELECT
     Configuration_Name_Instance_Number AS Step_Number,
     Configuration_Attribute_Name,
     Configuration_Attribute_Value
-FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
+FROM Data_Pipeline_Metadata_Advanced_Configuration
 WHERE Table_ID = {Table_ID}
   AND Configuration_Category = 'data_transformation_steps'
 ORDER BY Configuration_Name_Instance_Number, Configuration_Attribute_Name;
@@ -162,7 +162,7 @@ ORDER BY Configuration_Name_Instance_Number, Configuration_Attribute_Name;
 SELECT
     Configuration_Name,
     Configuration_Value
-FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
+FROM Data_Pipeline_Metadata_Primary_Configuration
 WHERE Table_ID = {Table_ID}
   AND Configuration_Category = 'watermark_details'
 ORDER BY Configuration_Name;
@@ -179,7 +179,7 @@ SELECT
     Target_Entity,
     Target_Datastore,
     Order_Of_Operations
-FROM dbo.Data_Pipeline_Metadata_Orchestration
+FROM Data_Pipeline_Metadata_Orchestration
 WHERE Ingestion_Active = 0
 ORDER BY Trigger_Name, Order_Of_Operations;
 ```
@@ -198,7 +198,7 @@ SELECT
     Medallion_Layer,
     Endpoint,
     Connection_ID
-FROM dbo.Datastore_Configuration
+FROM Datastore_Configuration
 WHERE Datastore_Name = '{Datastore_Name}';
 ```
 > **When to use:** User asks "what datastore does this table write to?" or "show me the connection details"
@@ -217,11 +217,11 @@ SELECT
     l.Records_Processed AS Last_Records,
     l.Ingestion_End_Time AS Last_Run_Time,
     l.Watermark_Value AS Current_Watermark
-FROM dbo.Data_Pipeline_Metadata_Orchestration o
+FROM Data_Pipeline_Metadata_Orchestration o
 LEFT JOIN (
     SELECT Table_ID, Ingestion_Status, Records_Processed, Ingestion_End_Time, Watermark_Value,
            ROW_NUMBER() OVER (PARTITION BY Table_ID ORDER BY Ingestion_End_Time DESC) AS rn
-    FROM dbo.Data_Pipeline_Logs
+    FROM Data_Pipeline_Logs
     WHERE Processing_Phase = 'Batch'
 ) l ON o.Table_ID = l.Table_ID AND l.rn = 1
 WHERE o.Table_ID = {Table_ID};
@@ -242,11 +242,11 @@ SELECT
     l.Ingestion_Status AS Last_Status,
     l.Records_Processed AS Last_Records,
     l.Ingestion_End_Time AS Last_Run_Time
-FROM dbo.Data_Pipeline_Metadata_Orchestration o
+FROM Data_Pipeline_Metadata_Orchestration o
 LEFT JOIN (
     SELECT Table_ID, Ingestion_Status, Records_Processed, Ingestion_End_Time,
            ROW_NUMBER() OVER (PARTITION BY Table_ID ORDER BY Ingestion_End_Time DESC) AS rn
-    FROM dbo.Data_Pipeline_Logs
+    FROM Data_Pipeline_Logs
     WHERE Processing_Phase = 'Batch'
 ) l ON o.Table_ID = l.Table_ID AND l.rn = 1
 ORDER BY o.Trigger_Name, o.Order_Of_Operations;
@@ -260,7 +260,7 @@ ORDER BY o.Trigger_Name, o.Order_Of_Operations;
 SELECT
     File_Name,
     Last_Modified
-FROM dbo.Metadata_Files
+FROM Metadata_Files
 ORDER BY Last_Modified DESC;
 ```
 > **When to use:** User asks "when was the metadata last deployed?" or "which metadata files have been pushed?"

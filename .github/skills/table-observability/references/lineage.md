@@ -20,7 +20,7 @@ SELECT
     Lineage_Depth,
     Lineage_Path,
     Source_Lineage_Narrative
-FROM dbo.Data_Pipeline_Lineage
+FROM Data_Pipeline_Lineage
 WHERE Target_Table_ID = {Table_ID}
 ORDER BY Lineage_Depth ASC;
 ```
@@ -44,7 +44,7 @@ SELECT
     Lineage_Depth,
     Lineage_Path,
     Target_Lineage_Narrative
-FROM dbo.Data_Pipeline_Lineage
+FROM Data_Pipeline_Lineage
 WHERE Source_Table_ID = {Table_ID}
 ORDER BY Lineage_Depth ASC;
 ```
@@ -71,7 +71,7 @@ SELECT
     Lineage_Group_Narrative,
     Is_Cross_Trigger,
     Cross_Trigger_Dependencies
-FROM dbo.Data_Pipeline_Lineage
+FROM Data_Pipeline_Lineage
 WHERE Trigger_Name = '{Trigger_Name}'
 ORDER BY Lineage_Depth ASC, Lineage_Path ASC;
 ```

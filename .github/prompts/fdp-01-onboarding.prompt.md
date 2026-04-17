@@ -27,7 +27,7 @@ Run this only when the user explicitly asks for onboarding content such as a che
 
 1. Understand onboarding context
 	- Capture role, experience level, immediate goal, and blockers.
-	- Confirm environment constraints such as workspace access, Fabric permissions, and Copilot availability.
+	- Confirm environment constraints such as Databricks workspace access, workspace permissions, and Copilot availability.
 2. Build a day-0 checklist
 	- Clone or open the repo, verify Copilot, and confirm prerequisites and access.
 3. Create a week-1 learning path

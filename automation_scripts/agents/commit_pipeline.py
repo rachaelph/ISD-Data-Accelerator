@@ -152,16 +152,19 @@ def parse_deleted_metadata_triggers_from_git_status(change_lines: list[str]) -> 
     return sorted(trigger_names)
 
 
-def get_committed_change_lines(source_directory: Path, git_folder_name: str) -> list[str]:
+def get_committed_change_lines(source_directory: Path, git_folder_name: str | None) -> list[str]:
+    cmd = ["git", "diff-tree", "--no-commit-id", "--name-status", "-r", "HEAD"]
+    if git_folder_name:
+        cmd += ["--", f"{git_folder_name}/"]
     committed = run_command(
-        ["git", "diff-tree", "--no-commit-id", "--name-status", "-r", "HEAD", "--", f"{git_folder_name}/"],
+        cmd,
         cwd=source_directory,
         error_prefix="git diff-tree failed",
     )
     return [line.strip() for line in committed.stdout.splitlines() if line.strip()]
 
 
-def get_committed_paths(source_directory: Path, git_folder_name: str) -> list[str]:
+def get_committed_paths(source_directory: Path, git_folder_name: str | None) -> list[str]:
     committed_change_lines = get_committed_change_lines(source_directory, git_folder_name)
     committed_paths: list[str] = []
     for change_line in committed_change_lines:
@@ -246,37 +249,44 @@ def main() -> int:
         execution_context = resolve_execution_context(
             source_directory=args.source_directory,
             git_folder_name=args.git_folder_name,
-            required_variables=[
-                "sql_warehouse_id",
-                "metadata_database",
-            ],
+            required_variables=["sql_warehouse_id", "metadata_catalog", "metadata_schema"],
+            environment=args.environment,
         )
         git_folder_name = execution_context["GitFolderName"]
         variables = execution_context["Variables"]
         sql_warehouse_id = variables["sql_warehouse_id"]
-        metadata_database = variables["metadata_database"]
+        catalog_name = variables["metadata_catalog"]
+        schema_name = variables["metadata_schema"]
+        metadata_database = f"{catalog_name}.{schema_name}"
         result["branchName"] = execution_context["BranchName"]
         result["hasFeatureOverrides"] = execution_context["HasOverrides"]
         if execution_context["HasOverrides"]:
             log(f"   [OK] {execution_context['OverrideStatusMessage']}")
         else:
             log(f"   [WARN] {execution_context['OverrideStatusMessage']}")
-        log(f"   [OK] Resolved git folder: {git_folder_name}")
+        if git_folder_name:
+            log(f"   [OK] Resolved git folder: {git_folder_name}")
+        else:
+            log("   [OK] No git folder scope — committing from repo root")
         log(f"   [OK] Branch: {execution_context['BranchName']}")
         log("")
 
         source_directory = args.source_directory.resolve()
         if not args.skip_commit:
             log("Step 3: Checking for local Git changes...")
+            scope_label = f"'{git_folder_name}/'" if git_folder_name else "the repository"
+            status_cmd = ["git", "status", "--porcelain", "--untracked-files=all"]
+            if git_folder_name:
+                status_cmd += ["--", f"{git_folder_name}/"]
             local_status = run_command(
-                ["git", "status", "--porcelain", "--untracked-files=all", "--", f"{git_folder_name}/"],
+                status_cmd,
                 cwd=source_directory,
                 error_prefix="git status failed",
             )
             local_changes = [line for line in local_status.stdout.splitlines() if line.strip()]
 
             if not local_changes:
-                log(f"   [INFO] No local file changes in '{git_folder_name}/' -- skipping local commit")
+                log(f"   [INFO] No local file changes in {scope_label} -- skipping local commit")
                 result["localGitStatus"] = "NoChanges"
             else:
                 has_local_git_folder_changes = True
@@ -295,8 +305,12 @@ def main() -> int:
                     log(f"   Local deleted metadata triggers: {', '.join(local_deleted_trigger_names)}")
 
                 commit_comment = args.commit_comment or "chore: deploy workspace changes"
-                log(f"   Staging all changes under '{git_folder_name}/'...")
-                run_command(["git", "add", "--", f"{git_folder_name}/"], cwd=source_directory, error_prefix="git add failed")
+                if git_folder_name:
+                    log(f"   Staging all changes under '{git_folder_name}/'...")
+                    run_command(["git", "add", "--", f"{git_folder_name}/"], cwd=source_directory, error_prefix="git add failed")
+                else:
+                    log("   Staging all changes under the repository root...")
+                    run_command(["git", "add", "--all"], cwd=source_directory, error_prefix="git add failed")
 
                 log(f"   Committing: {commit_comment}")
                 commit_output = run_command(
@@ -395,15 +409,7 @@ def main() -> int:
             log(f"   Database         : {metadata_database}")
             log("")
 
-            # Parse catalog and schema from metadata_database (e.g. "catalog.schema" or just "schema")
-            catalog_name = None
-            schema_name = None
-            if "." in metadata_database:
-                catalog_name, schema_name = metadata_database.rsplit(".", 1)
-            else:
-                schema_name = metadata_database
-
-            sql_files = discover_sql_files(source_directory, git_folder_name)
+            sql_files = discover_sql_files(source_directory)
             available_sql_notebook_names = {normalize_notebook_name(sql_file.name) for sql_file in sql_files}
             changed_sql_notebook_names = sorted(name for name in changed_notebook_names if name in available_sql_notebook_names)
             deleted_metadata_trigger_names_sorted = sorted(deleted_metadata_trigger_names)
@@ -418,8 +424,9 @@ def main() -> int:
                 if len(sql_files) < original_count:
                     log(f"   Filtered to {len(sql_files)} changed file(s) out of {original_count} total")
             elif has_local_git_folder_changes and not deleted_metadata_trigger_names_sorted:
+                scope_label = f"'{git_folder_name}/'" if git_folder_name else "the repository"
                 log(
-                    f"   [INFO] Local changes were detected in '{git_folder_name}/' but none map to metadata/datastore SQL files -- skipping metadata SQL deployment"
+                    f"   [INFO] Local changes were detected in {scope_label} but none map to metadata/datastore SQL files -- skipping metadata SQL deployment"
                 )
                 result["metadataDeployStatus"] = "NoChanges"
             else:

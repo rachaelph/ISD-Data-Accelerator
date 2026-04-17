@@ -59,11 +59,11 @@ This pattern enables metadata-driven ingestion from external relational database
 ### Basic Configuration (Full Load)
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('MyDataProductTrigger', 1, 1, 'bronze', 'dbo.MySourceTable', 'CustomerID,OrderID', 'pipeline_stage_and_batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Supported sources: azure_sql, sql_server, oracle, postgre_sql, my_sql, db2
     (1, 'source_details', 'source', 'oracle'), 
@@ -82,11 +82,11 @@ VALUES
 ### Incremental Load with Watermark (Recommended for Large Tables)
 ```sql
 -- Orchestration Table (same as above)
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('MyDataProductTrigger', 1, 1, 'bronze', 'dbo.MySourceTable', 'CustomerID,OrderID', 'pipeline_stage_and_batch', 1)
 
 -- Primary Config Table with Watermark
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'source', 'oracle'), 
     (1, 'source_details', 'datastore_name', 'oracle_sales'),
@@ -109,7 +109,7 @@ VALUES
 **Parallel Extraction for Large Tables**
 ```sql
 -- Enable source-side partitioning for faster extraction
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'partitioning_option', 'DynamicRange')
     -- See: https://learn.microsoft.com/en-us/fabric/data-factory/connector-oracle-database-copy-activity#parallel-copy-from-oracle-database
@@ -118,7 +118,7 @@ VALUES
 **Handle Non-UTF-8 Encodings**
 ```sql
 -- Specify encoding if source data is not UTF-8
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'encoding', 'ISO-8859-1')
     -- See: https://learn.microsoft.com/en-us/azure/data-factory/format-delimited-text#dataset-properties
@@ -127,7 +127,7 @@ VALUES
 **Enforce NOT NULL Constraints**
 ```sql
 -- Attempt to enforce NOT NULL constraints from source DB in target Delta table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'target_details', 'enforce_not_null', 'true')
     -- Default: false
@@ -197,11 +197,11 @@ All three steps happen automatically within a **single orchestration record** - 
 ### Basic Configuration (Full Load)
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('MySFTPTrigger', 1, 1, 'bronze', 'dbo.SFTPData', '', 'pipeline_stage_and_batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'source', 'sftp'),
     (1, 'source_details', 'datastore_name', 'sftp_uploads'),
@@ -220,10 +220,10 @@ SFTP ingestion **automatically supports incremental loading** - no additional co
 
 ```sql
 -- Same configuration as Full Load - incremental is automatic!
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('MySFTPTrigger', 1, 1, 'bronze', 'dbo.SFTPData', '', 'pipeline_stage_and_batch', 1)
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'source', 'sftp'),
     (1, 'source_details', 'datastore_name', 'sftp_uploads'),
@@ -284,12 +284,12 @@ This pattern enables ingestion of structured file data (CSV, JSON, Excel, XML, P
 ### Basic CSV Configuration with Auto-Watermarking
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('FileData', 1, 45, 'silver', 'dbo.oracle_Sales2', 'Prod_Id, Cust_Id, Time_Id, Channel_Id, Promo_Id', 'batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Watermarking happens by default - only files with a later modified timestamp than last run will be ingested
     -- The wildcard folder path should be based on the path to your files in the volume `Files` directory.
@@ -303,7 +303,7 @@ VALUES
 -- Orchestration Table (same structure as CSV example above)
 
 -- Primary Config Table for Excel
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (45, 'source_details', 'wildcard_folder_path', 'excel/sales/*.xlsx'),
     -- REQUIRED for Excel files. Provide a single sheet, comma-separated sheet list, or '*' for all sheets.
@@ -317,7 +317,7 @@ When multiple sheets are requested (including the `*` wildcard), the ingestion f
 ### JSON File Configuration
 ```sql
 -- Primary Config Table for JSON
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (45, 'source_details', 'wildcard_folder_path', 'json/events/*.json'),
     -- Required for multi-line JSON (each record spans multiple lines)
@@ -329,7 +329,7 @@ VALUES
 ### XML File Configuration
 ```sql
 -- Primary Config Table for XML
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (45, 'source_details', 'wildcard_folder_path', 'xml/orders/*.xml'),
     -- Optional: XPath to project only desired nodes
@@ -343,7 +343,7 @@ VALUES
 ### Advanced CSV/TSV Configuration
 ```sql
 -- Primary Config Table with advanced options
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (45, 'source_details', 'wildcard_folder_path', 'delimited/data/*.tsv'),
     -- Custom delimiter (tab-separated in this example)
@@ -498,12 +498,12 @@ When standard file readers don't meet your needs (e.g., complex XML parsing, pro
 ### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('FileData', 1, 100, 'bronze', 'dbo.oracle_Sales3', 'Prod_Id, Cust_Id, Time_Id, Channel_Id, Promo_Id', 'batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- wildcard_folder_path should reference where data is located within the UC Volumes
     (100, 'source_details', 'wildcard_folder_path', 'oracle/Sales/*/*.xml'),
@@ -637,12 +637,12 @@ Custom staging functions allow you to stage data into UC Volumes using custom Py
 ### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('CustomAPI', 1, 200, 'bronze', 'dbo.api_data', '', 'batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Required: staging volume and folder path
     (200, 'source_details', 'staging_volume_name', 'bronze'),
@@ -748,12 +748,12 @@ Custom source functions allow you to ingest data from external sources (APIs, se
 ### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('ExternalAPI', 1, 300, 'bronze', 'dbo.api_records', 'record_id', 'batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Name of the Python function to execute
     (300, 'source_details', 'custom_source_function', 'my_external_api_function'),

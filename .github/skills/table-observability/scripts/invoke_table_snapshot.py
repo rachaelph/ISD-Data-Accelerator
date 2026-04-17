@@ -38,11 +38,11 @@ def get_profile_sql(table_id: int) -> str:
     return (
         "SELECT Table_Name, Column_Name, Data_Type, Total_Rows, Approx_Distinct_Values, Null_Count, "
         "Null_Percent, Mean, Std_Dev, [Min], [Max], Data_Profile_Execution_Time, Table_Last_Modified_Time "
-        "FROM dbo.Exploratory_Data_Analysis_Results "
+        "FROM Exploratory_Data_Analysis_Results "
         f"WHERE Table_ID = {table_id} "
         "AND Data_Profile_Execution_Time = ("
         "SELECT MAX(Data_Profile_Execution_Time) "
-        "FROM dbo.Exploratory_Data_Analysis_Results "
+        "FROM Exploratory_Data_Analysis_Results "
         f"WHERE Table_ID = {table_id}) "
         "ORDER BY Column_Name;"
     )

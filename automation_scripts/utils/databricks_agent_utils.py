@@ -14,7 +14,6 @@ import re
 import subprocess
 import time
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -130,6 +129,7 @@ class DatastoreConfig:
     metadata_sql_warehouse_id: str
     source_path: Path
     external_datastores: dict[str, dict[str, Any]] = field(default_factory=dict)
+    extra_variables: dict[str, str] = field(default_factory=dict)
     active_branch_override: str | None = None
     override_source_path: Path | None = None
 
@@ -272,29 +272,12 @@ def execute_sql_batch(
             )
 
 
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-def ensure_single_match(matches: list[Path], scope_message: str) -> Path:
-    if len(matches) == 1:
-        return matches[0]
-    joined_paths = "\n   - ".join(str(path) for path in matches)
-    raise AgentError(
-        f"{scope_message}. Multiple workspace config files found. Expected exactly one, but found {len(matches)}:\n"
-        f"   - {joined_paths}\n"
-        "Remove duplicates so only one workspace_config.json exists."
-    )
-
-
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
 def _normalize_source_directory(source_directory: Path | str) -> Path:
     return Path(source_directory).resolve()
-
-
-WORKSPACE_CONFIG_FILENAME = "workspace_config.json"
 
 
 # ---------------------------------------------------------------------------
@@ -529,6 +512,14 @@ def _apply_datastore_overrides(
                 target = external_datastores[ext_name]
                 target["connection_details"] = {**target["connection_details"], **conn_patch}
 
+    extra_variables = dict(config.extra_variables)
+    variables_override = override_payload.get("variables")
+    if isinstance(variables_override, dict):
+        for name, value in variables_override.items():
+            if not isinstance(name, str) or not name.strip():
+                continue
+            extra_variables[name.strip()] = "" if value is None else str(value)
+
     return DatastoreConfig(
         environment=config.environment,
         workspace_id=config.workspace_id,
@@ -540,6 +531,7 @@ def _apply_datastore_overrides(
         metadata_sql_warehouse_id=metadata_warehouse,
         source_path=config.source_path,
         external_datastores=external_datastores,
+        extra_variables=extra_variables,
         active_branch_override=branch,
         override_source_path=override_path,
     )
@@ -656,6 +648,15 @@ def load_datastore_config(
             )
         external_datastores[ext_name] = {"kind": kind.strip(), "connection_details": dict(conn)}
 
+    extra_variables_raw = payload.get("variables") or {}
+    if not isinstance(extra_variables_raw, dict):
+        raise AgentError(f"'variables' must be an object in '{config_path}'.")
+    extra_variables: dict[str, str] = {}
+    for var_name, var_value in extra_variables_raw.items():
+        if not isinstance(var_name, str) or not var_name.strip():
+            continue
+        extra_variables[var_name.strip()] = "" if var_value is None else str(var_value)
+
     config = DatastoreConfig(
         environment=env.upper(),
         workspace_id=workspace_id,
@@ -667,6 +668,7 @@ def load_datastore_config(
         metadata_sql_warehouse_id=metadata_warehouse.strip(),
         source_path=config_path,
         external_datastores=external_datastores,
+        extra_variables=extra_variables,
     )
 
     if override_path is not None:
@@ -877,193 +879,6 @@ def sync_datastore_config_to_delta(
 
 
 # ---------------------------------------------------------------------------
-# Workspace configuration resolution
-# ---------------------------------------------------------------------------
-@lru_cache(maxsize=64)
-def _find_workspace_config_file_cached(source_directory_text: str, git_folder_name: str) -> str:
-    source_directory = Path(source_directory_text)
-    git_folder_path = source_directory / git_folder_name
-
-    # 1. Direct match at git folder root
-    narrow_match = git_folder_path / WORKSPACE_CONFIG_FILENAME
-    if narrow_match.exists():
-        return str(narrow_match.resolve())
-
-    # 2. Recursive search within git folder
-    recursive_matches = [
-        path.resolve()
-        for path in git_folder_path.rglob(WORKSPACE_CONFIG_FILENAME)
-    ]
-    if recursive_matches:
-        return str(
-            ensure_single_match(
-                recursive_matches,
-                scope_message=f"Workspace config not found at top level of '{git_folder_name}', searching recursively",
-            )
-        )
-
-    # 3. Global search across source directory
-    global_matches = [
-        path.resolve()
-        for path in source_directory.rglob(WORKSPACE_CONFIG_FILENAME)
-    ]
-    if global_matches:
-        return str(
-            ensure_single_match(
-                global_matches,
-                scope_message=f"Workspace config not found in '{git_folder_name}', searching entire source directory",
-            )
-        )
-
-    raise AgentError(
-        f"Workspace config not found anywhere under '{source_directory}'. "
-        f"Create a '{WORKSPACE_CONFIG_FILENAME}' file in the Git folder '{git_folder_name}'."
-    )
-
-
-@lru_cache(maxsize=64)
-def _resolve_git_folder_from_workspace_config_cached(source_directory_text: str) -> str:
-    source_directory = Path(source_directory_text)
-    matches = [
-        path.resolve()
-        for path in source_directory.rglob(WORKSPACE_CONFIG_FILENAME)
-    ]
-    if not matches:
-        raise AgentError(f"No {WORKSPACE_CONFIG_FILENAME} found under '{source_directory}'.")
-
-    git_folders = sorted({path.parent.name for path in matches})
-    if len(git_folders) > 1:
-        raise AgentError(
-            f"Multiple workspace configs found (git folders: {', '.join(git_folders)}). Specify --git-folder-name to select one."
-        )
-    return git_folders[0]
-
-
-def find_workspace_config_file(source_directory: Path, git_folder_name: str) -> Path:
-    return Path(_find_workspace_config_file_cached(str(source_directory.resolve()), git_folder_name))
-
-
-def resolve_git_folder_from_workspace_config(source_directory: Path, explicit_git_folder_name: str | None) -> str:
-    if explicit_git_folder_name:
-        return explicit_git_folder_name
-    return _resolve_git_folder_from_workspace_config_cached(str(source_directory.resolve()))
-
-
-def load_workspace_config(config_path: Path) -> dict[str, str]:
-    """Load workspace_config.json and return a flat name→value dict.
-
-    Supports two formats:
-    - Simple dict: {"sql_warehouse_id": "abc123", ...}
-    - Legacy array: {"variables": [{"name": "...", "value": "..."}]}
-    """
-    try:
-        payload = json.loads(_read_text(config_path))
-    except json.JSONDecodeError as exc:
-        raise AgentError(
-            f"Failed to parse workspace config at '{config_path}': {exc.msg}"
-        ) from exc
-
-    # Legacy array format (from Fabric migration — prefer simple dict format)
-    variables = payload.get("variables")
-    if isinstance(variables, list):
-        result: dict[str, str] = {}
-        for item in variables:
-            if not isinstance(item, dict):
-                continue
-            name = item.get("name")
-            value = item.get("value")
-            if isinstance(name, str):
-                result[name] = "" if value is None else str(value)
-        return result
-
-    # Simple dict format (preferred)
-    if isinstance(payload, dict):
-        return {k: ("" if v is None else str(v)) for k, v in payload.items()}
-
-    raise AgentError(
-        f"Workspace config at '{config_path}' must be a JSON object or contain a 'variables' array."
-    )
-
-
-def get_required_variables(source_directory: Path | str, git_folder_name: str, required_variables: list[str]) -> dict[str, Any]:
-    resolved_source_directory = _normalize_source_directory(source_directory)
-    config_path = find_workspace_config_file(resolved_source_directory, git_folder_name)
-    all_variables = load_workspace_config(config_path)
-
-    resolved_variables: dict[str, str] = {}
-    for variable_name in required_variables:
-        value = all_variables.get(variable_name)
-        if value is None or value == "":
-            raise AgentError(
-                f"'{variable_name}' not found or empty in workspace config at '{config_path}'. "
-                f"Add this variable to '{WORKSPACE_CONFIG_FILENAME}'."
-            )
-        resolved_variables[variable_name] = value
-
-    return {
-        "variables": resolved_variables,
-        "configPath": str(config_path),
-    }
-
-
-def resolve_workspace_config_folder(source_directory: Path | str, git_folder_name: str) -> Path:
-    config_file = find_workspace_config_file(_normalize_source_directory(source_directory), git_folder_name)
-    return config_file.parent
-
-
-def apply_variable_overrides(
-    source_directory: Path | str,
-    git_folder_name: str,
-    required_variables: list[str],
-    branch: str | None = None,
-) -> dict[str, Any]:
-    """Return workspace_config variables with branch overrides applied.
-
-    Overrides come from ``databricks_batch_engine/datastores/overrides/<branch>.json``
-    — specifically the optional top-level ``variables`` object.
-    """
-    base_result = get_required_variables(source_directory, git_folder_name, required_variables)
-    base_variables = dict(base_result["variables"])
-    has_overrides = False
-    override_source: str | None = None
-
-    resolved_source_directory = _normalize_source_directory(source_directory)
-    try:
-        engine = resolve_engine_folder(resolved_source_directory)
-    except AgentError:
-        engine = None
-
-    if engine is not None:
-        effective_branch = branch if branch is not None else get_current_branch_name(resolved_source_directory)
-        override_path = _find_branch_override_file(engine, effective_branch)
-        if override_path is not None:
-            override_payload = _load_branch_override_payload(override_path)
-            variables_override = override_payload.get("variables")
-            if isinstance(variables_override, dict):
-                for name, value in variables_override.items():
-                    if not isinstance(name, str) or name not in base_variables:
-                        continue
-                    base_variables[name] = "" if value is None else str(value)
-                    has_overrides = True
-                if has_overrides:
-                    override_source = str(override_path)
-
-    for variable_name in required_variables:
-        value = base_variables.get(variable_name)
-        if value is None or value == "":
-            raise AgentError(
-                f"'{variable_name}' is missing or empty after applying overrides."
-            )
-
-    return {
-        "variables": base_variables,
-        "hasOverrides": has_overrides,
-        "overrideSourcePath": override_source,
-        "configPath": base_result["configPath"],
-    }
-
-
-# ---------------------------------------------------------------------------
 # Git helpers
 # ---------------------------------------------------------------------------
 def get_current_branch_name(source_directory: Path | str) -> str:
@@ -1083,38 +898,98 @@ def get_current_branch_name(source_directory: Path | str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Execution context resolution
+# Execution context resolution (datastore_<ENV>.json is the single source of truth)
 # ---------------------------------------------------------------------------
+_CORE_VARIABLE_NAMES = (
+    "sql_warehouse_id",
+    "metadata_catalog",
+    "metadata_schema",
+    "metadata_database",
+    "metadata_sql_warehouse_id",
+    "workspace_id",
+    "workspace_url",
+)
+
+
+def _build_variables_from_datastore(config: DatastoreConfig) -> dict[str, str]:
+    """Flatten :class:`DatastoreConfig` into the ``Variables`` dict consumed by callers.
+
+    Extra keys from the optional top-level ``variables`` object in the JSON
+    (e.g. ``job_id_batch_processing``) are merged on top, so the datastore
+    config is the single source of truth for all runtime values.
+    """
+    variables: dict[str, str] = {
+        "sql_warehouse_id": config.sql_warehouse_id,
+        "metadata_catalog": config.metadata_catalog,
+        "metadata_schema": config.metadata_schema,
+        "metadata_database": f"{config.metadata_catalog}.{config.metadata_schema}",
+        "metadata_sql_warehouse_id": config.metadata_sql_warehouse_id,
+        "workspace_id": config.workspace_id,
+        "workspace_url": config.workspace_url,
+    }
+    for name, value in config.extra_variables.items():
+        variables[name] = value
+    return variables
+
+
 def resolve_execution_context(
     source_directory: Path | str,
-    git_folder_name: str | None,
-    required_variables: list[str],
+    git_folder_name: str | None = None,
+    required_variables: list[str] | None = None,
+    environment: str = "DEV",
 ) -> dict[str, Any]:
+    """Resolve the shared execution context from ``datastore_<ENV>.json``.
+
+    ``git_folder_name`` is optional: pass it only when a workflow wants to scope
+    ``git status`` / ``git add`` to a sub-tree. When omitted the full repo is in
+    scope.
+
+    ``required_variables`` is validated against the merged ``Variables`` dict
+    (core datastore fields + any top-level ``variables`` block from the JSON,
+    with branch overrides applied).
+    """
     resolved_source_directory = _normalize_source_directory(source_directory)
-    resolved_git_folder_name = resolve_git_folder_from_workspace_config(resolved_source_directory, git_folder_name)
-    git_folder_path = resolved_source_directory / resolved_git_folder_name
-    config_folder = resolve_workspace_config_folder(resolved_source_directory, resolved_git_folder_name)
-    resolved = apply_variable_overrides(
+    engine = resolve_engine_folder(resolved_source_directory)
+    branch = get_current_branch_name(resolved_source_directory)
+    config = load_datastore_config(
         resolved_source_directory,
-        resolved_git_folder_name,
-        required_variables,
+        environment,
+        engine_folder=engine,
+        branch=branch,
     )
-    has_overrides = bool(resolved["hasOverrides"])
-    override_path = resolved.get("overrideSourcePath")
+
+    variables = _build_variables_from_datastore(config)
+    for variable_name in required_variables or []:
+        value = variables.get(variable_name)
+        if value is None or value == "":
+            raise AgentError(
+                f"'{variable_name}' is missing or empty in datastore config '{config.source_path}'. "
+                f"Add it to the 'variables' block (or as a core field) in the JSON."
+            )
+
+    has_overrides = config.override_source_path is not None
+    override_path = str(config.override_source_path) if config.override_source_path else None
+    git_folder_path = (
+        str(resolved_source_directory / git_folder_name) if git_folder_name else None
+    )
+
     return {
         "SourceDirectory": str(resolved_source_directory),
-        "GitFolderName": resolved_git_folder_name,
-        "GitFolderPath": str(git_folder_path),
-        "WorkspaceConfigPath": str(config_folder),
-        "BranchName": get_current_branch_name(resolved_source_directory),
+        "Environment": config.environment,
+        "EngineFolderName": engine.path.name,
+        "EngineFolderPath": str(engine.path),
+        "GitFolderName": git_folder_name,
+        "GitFolderPath": git_folder_path,
+        "DatastoreConfigPath": str(config.source_path),
+        "BranchName": branch,
         "HasOverrides": has_overrides,
         "OverrideSourcePath": override_path,
         "OverrideStatusMessage": (
             f"Using branch overrides from '{override_path}'"
             if has_overrides
-            else "Using base workspace config (no branch overrides active)"
+            else f"Using base datastore config '{config.source_path}' (no branch overrides active)"
         ),
-        "Variables": resolved["variables"],
+        "Variables": variables,
     }
 
 

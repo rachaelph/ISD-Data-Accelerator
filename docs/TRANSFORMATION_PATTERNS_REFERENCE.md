@@ -2,7 +2,7 @@
 
 > Last updated: 2026-03-29
 
-> **Canonical lookup catalog for all 34 built-in transformation types.** Each entry shows the exact `INSERT` syntax for `dbo.Data_Pipeline_Metadata_Advanced_Configuration` with `Configuration_Category = 'data_transformation_steps'`.
+> **Canonical lookup catalog for all 34 built-in transformation types.** Each entry shows the exact `INSERT` syntax for `Data_Pipeline_Metadata_Advanced_Configuration` with `Configuration_Category = 'data_transformation_steps'`.
 >
 > **Related docs:**
 > - [METADATA_GENERATION_GUIDE.md](METADATA_GENERATION_GUIDE.md) — core generation rules, golden rules, legacy code conversion
@@ -30,7 +30,7 @@ Each instance number must be **unique** for a given `(Table_ID, Configuration_Ca
 
 ##### 1. columns_to_rename - Rename columns
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'columns_to_rename', 1, 'existing_column_name', 'cust_id,prod_id'),
@@ -39,7 +39,7 @@ VALUES
 
 ##### 2. derived_column - Create calculated columns
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'derived_column', 1, 'column_name', 'total_amount'),
@@ -54,7 +54,7 @@ Best practice for `TimestampNTZ` inputs:
 - If the source time zone is unknown, do not invent one in metadata. Keep the original column and escalate the contract question.
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'derived_column', 2, 'column_name', 'created_utc'),
@@ -75,7 +75,7 @@ VALUES
 > **See also**: [Error Prevention #9](#9-using-filter_data-transformation-for-data-quality-validation) for detailed examples.
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'filter_data', 1, 'filter_logic', 'order_date >= ''2024-01-01'' AND status = ''completed''');
@@ -94,21 +94,21 @@ VALUES
 
 ```sql
 -- Exact match deduplication across all columns (no order_by = exact mode)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'drop_duplicates', 1, 'column_name', '*');
     (103, 'data_transformation_steps', 'drop_duplicates', 1, 'column_name', '*');
 
 -- Exact match deduplication on specific columns
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'drop_duplicates', 1, 'column_name', 'customer_id,product_id');
     (103, 'data_transformation_steps', 'drop_duplicates', 1, 'column_name', 'customer_id,product_id');
 
 -- Ordered deduplication: keep most recent per customer_id (desc is default)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'drop_duplicates', 2, 'column_name', 'customer_id'),
@@ -119,7 +119,7 @@ VALUES
 
 ##### 5. change_data_types - Convert data types
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'change_data_types', 1, 'column_name', 'customer_id,order_id'),
@@ -145,7 +145,7 @@ VALUES
 - `broadcast_hint`: Optional. Set to `'true'` to apply a Spark broadcast hint for small dimension joins, improving performance. Default: `'false'`.
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'join_data', 1, 'join_type', 'left'),
@@ -164,7 +164,7 @@ VALUES
 - `output_column_name`: Required. Comma-separated output column names (must match count of `column_name`).
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'aggregate_data', 1, 'group_by_columns', 'customer_id,product_id'),
@@ -180,7 +180,7 @@ VALUES
 - `column_name`: Name of the surrogate key column to create
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'create_surrogate_key', 1, 'type', 'auto_increment'),
@@ -255,7 +255,7 @@ In this model:
 You can add any additional attributes with the same `Configuration_Name_Instance_Number`. These are passed to your function via the `metadata` dict and can be accessed in your custom function.
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Required attributes
@@ -368,7 +368,7 @@ See also: [Custom_Transformation_Function.py](resources/Custom_Transformation_Fu
 
 ```sql
 -- Create a 'full_name' column by concatenating first and last names
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'derived_column', 2, 'column_name', 'full_name'),
     (101, 'data_transformation_steps', 'derived_column', 2, 'expression', 'concat(first_name, " ", last_name)');
@@ -385,13 +385,13 @@ Use this to create a hash value for a row to track changes or create a unique id
 
 ```sql
 -- Example 1: Default xxhash64 for fast change detection
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'add_row_hash', 3, 'column_name', 'product_id,price,description'),
     (101, 'data_transformation_steps', 'add_row_hash', 3, 'output_column_name', 'change_hash');
 
 -- Example 2: SHA-256 for collision-free hashing (critical data)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (102, 'data_transformation_steps', 'add_row_hash', 1, 'column_name', '*'),
     (102, 'data_transformation_steps', 'add_row_hash', 1, 'hash_algorithm', 'sha256'),
@@ -405,7 +405,7 @@ Use this to remove one or more columns from the dataset.
 
 ```sql
 -- Remove temporary or unnecessary columns
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'remove_columns', 4, 'column_name', 'temp_col1,temp_col2');
 ```
@@ -417,7 +417,7 @@ Use this to explicitly select a subset of columns to keep in the dataset. All ot
 
 ```sql
 -- Select only the key business columns for the final output
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'select_columns', 5, 'column_name', 'customer_id,product_id,order_date,amount'),
     (101, 'data_transformation_steps', 'select_columns', 5, 'retain_metadata_columns', 'true');
@@ -434,7 +434,7 @@ Use this to apply various null handling strategies to one or more columns.
 
 ```sql
 -- Drop rows where 'email' or 'phone' is null
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'apply_null_handling', 6, 'column_name', 'email,phone'),
     (101, 'data_transformation_steps', 'apply_null_handling', 6, 'action', 'drop_rows'),
@@ -443,7 +443,7 @@ VALUES
 
 ```sql
 -- Replace null 'status' values with 'Unknown'
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'apply_null_handling', 7, 'column_name', 'status'),
     (101, 'data_transformation_steps', 'apply_null_handling', 7, 'action', 'replace_with_default'),
@@ -452,7 +452,7 @@ VALUES
 
 ```sql
 -- Convert specific string values like 'N/A' and 'Not Applicable' to null in the 'notes' column
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'apply_null_handling', 8, 'column_name', 'notes'),
     (101, 'data_transformation_steps', 'apply_null_handling', 8, 'action', 'convert_values_to_null'),
@@ -470,7 +470,7 @@ Use this to perform find-and-replace operations on a column.
 
 ```sql
 -- In the 'country' column, replace 'USA' with 'United States'
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'replace_values', 9, 'column_name', 'country'),
     (101, 'data_transformation_steps', 'replace_values', 9, 'values_to_replace', 'USA'),
@@ -491,7 +491,7 @@ Use this to mask sensitive data in one or more columns using character-by-charac
 
 ```sql
 -- ✅ PREFERRED: Mask multiple PII columns with same pattern in ONE instance
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'mask_sensitive_data', 10, 'column_name', 'email,phone,credit_card_number'),
     (101, 'data_transformation_steps', 'mask_sensitive_data', 10, 'upper_char', 'X'),
@@ -503,7 +503,7 @@ VALUES
 
 ```sql
 -- Custom masking for SSN: Use # for digits, preserve dashes
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'mask_sensitive_data', 11, 'column_name', 'social_security_number'),
     (101, 'data_transformation_steps', 'mask_sensitive_data', 11, 'digit_char', '#'),
@@ -513,7 +513,7 @@ VALUES
 
 ```sql
 -- When columns need DIFFERENT masking patterns, use separate instances
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Instance 12: Preserve email structure (@ and . visible)
     (101, 'data_transformation_steps', 'mask_sensitive_data', 12, 'column_name', 'email'),
@@ -538,7 +538,7 @@ Use this to pivot a table, transforming rows into columns. Supports single or mu
 
 ```sql
 -- Example 1: Single value column pivot with detailed naming
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'pivot_data', 13, 'group_columns', 'product'),
     (101, 'data_transformation_steps', 'pivot_data', 13, 'pivot_column', 'year'),
@@ -547,7 +547,7 @@ VALUES
 -- Results in columns like: 2023_sum(sales), 2024_sum(sales)
 
 -- Example 2: Multiple value columns with simplified naming
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (102, 'data_transformation_steps', 'pivot_data', 1, 'group_columns', 'region'),
     (102, 'data_transformation_steps', 'pivot_data', 1, 'pivot_column', 'quarter'),
@@ -567,7 +567,7 @@ Use this to unpivot a table, transforming columns into rows. This is the inverse
 
 ```sql
 -- Unpivot a table that has sales data in columns for each year (e.g., '2022', '2023')
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'unpivot_data', 14, 'id_columns', 'product_id,product_name'),
     (101, 'data_transformation_steps', 'unpivot_data', 14, 'value_columns', '2022,2023,2024'),
@@ -590,7 +590,7 @@ Use this to add a new column based on a window function calculation (e.g., `ROW_
 
 ```sql
 -- Add a row number to each customer's orders, ordered by date
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'add_window_function', 15, 'output_column_name', 'order_rank'),
     (101, 'data_transformation_steps', 'add_window_function', 15, 'window_function', 'row_number'),
@@ -599,7 +599,7 @@ VALUES
     (101, 'data_transformation_steps', 'add_window_function', 15, 'order_direction', 'desc');
 
 -- Multiple order columns with individual directions
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'add_window_function', 16, 'output_column_name', 'priority_rank'),
     (101, 'data_transformation_steps', 'add_window_function', 16, 'window_function', 'rank'),
@@ -610,7 +610,7 @@ VALUES
 
 ```sql
 -- Calculate the running total of sales within each product category
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'add_window_function', 17, 'column_name', 'sales_amount'),
     (101, 'data_transformation_steps', 'add_window_function', 17, 'output_column_name', 'running_total'),
@@ -633,7 +633,7 @@ Use this to perform various transformations on datetime columns, such as formatt
 
 ```sql
 -- Format the 'order_date' column to 'yyyy-MM-dd' format
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'transform_datetime', 17, 'column_name', 'order_date'),
     (101, 'data_transformation_steps', 'transform_datetime', 17, 'operation', 'format_date'),
@@ -643,7 +643,7 @@ VALUES
 
 ```sql
 -- Extract the year from the 'order_date' and store it in a new 'order_year' column
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'transform_datetime', 18, 'column_name', 'order_date'),
     (101, 'data_transformation_steps', 'transform_datetime', 18, 'operation', 'year'),
@@ -661,7 +661,7 @@ Use this to combine the rows from one or more tables into the current table.
 
 ```sql
 -- Union the current table with another table, matching columns by name
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'union_data', 19, 'union_tables', 'silver.dbo.other_sales'),
     (101, 'data_transformation_steps', 'union_data', 19, 'union_type', 'by_name'),
@@ -686,7 +686,7 @@ Use this to perform entity resolution by comparing records from primary and seco
 
 ```sql
 -- Resolve customer entities by comparing primary and secondary customer datasets
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'entity_resolution', 20, 'primary_dataset_alias', 'customers_a'),
     (101, 'data_transformation_steps', 'entity_resolution', 20, 'secondary_dataset_alias', 'customers_b'),
@@ -704,7 +704,7 @@ Use this to change the data type of one or more columns.
 
 ```sql
 -- Change data type of columns
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'change_data_types', 5, 'column_name', 'order_id'),
     (101, 'data_transformation_steps', 'change_data_types', 5, 'new_type', 'string');
@@ -859,7 +859,7 @@ src/
 
 ```sql
 -- Example 1: Basic custom table ingestion from Delta tables
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (101, 'source_details', 'custom_table_ingestion_function', 'extract_sales_with_aggregations'),
     (101, 'source_details', 'custom_table_ingestion_function_notebook', 'custom_Sales_Ingestion');
@@ -867,7 +867,7 @@ VALUES
 
 ```sql
 -- Example 2: Custom table ingestion with watermark for incremental loading from Delta tables
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (102, 'source_details', 'custom_table_ingestion_function', 'extract_incremental_sales'),
     (102, 'source_details', 'custom_table_ingestion_function_notebook', 'custom_sales_extractors'),
@@ -880,7 +880,7 @@ VALUES
 
 ```sql
 -- Example 3: Custom file ingestion (e.g., complex XML parsing)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (103, 'source_details', 'wildcard_folder_path', 'oracle/Sales/*/*.xml'),
     (103, 'source_details', 'datastore_name', 'bronze'),
@@ -890,7 +890,7 @@ VALUES
 
 ```sql
 -- Example 4: Custom table ingestion with data cleansing
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (104, 'source_details', 'custom_table_ingestion_function', 'extract_complex_sales_query'),
     (104, 'source_details', 'custom_table_ingestion_function_notebook', 'custom_Queries'),
@@ -905,7 +905,7 @@ VALUES
 
 ```sql
 -- Example 5: Custom table ingestion with multiple watermark columns (Delta tables ONLY)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (105, 'source_details', 'custom_table_ingestion_function', 'extract_modified_or_created_records'),
     (105, 'source_details', 'custom_table_ingestion_function_notebook', 'custom_delta_extractors'),
@@ -981,7 +981,7 @@ def your_file_ingestion_function(file_paths: list, all_metadata: dict, spark) ->
 
 ```sql
 -- Example: Custom XML file ingestion
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (106, 'source_details', 'wildcard_folder_path', 'erp/orders/*/*.xml'),
     (106, 'source_details', 'datastore_name', 'bronze'),
@@ -1093,7 +1093,7 @@ def your_staging_function(metadata: dict, spark) -> dict:
 
 ```sql
 -- Example: Custom staging with API data extraction
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (107, 'source_details', 'custom_staging_function', 'stage_api_data'),
     (107, 'source_details', 'custom_staging_function_notebook', 'custom_API_Staging'),
@@ -1142,40 +1142,40 @@ Promote by editing `datastore_PROD.json` with the PROD workspace URL and IDs. `/
 
 ```sql
 -- Example 1: Execute notebook
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES ('ExecuteItems', 1, 106, 'gold', 'dbo.ml_predictions', 'execute_databricks_notebook', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (106, 'source_details', 'datastore_name', 'my_ml_notebook');
 ```
 
 ```sql
 -- Example 2: Execute external job
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES ('ExecuteItems', 2, 107, 'silver', 'dbo.pq_transformed', 'execute_databricks_job', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (107, 'source_details', 'datastore_name', 'my_pq_dataflow');
 ```
 
 ```sql
 -- Example 3: Cross-workspace execution (workspace_id is set in Datastore_Configuration)
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES ('ExecuteItems', 3, 108, 'gold', 'dbo.cross_workspace_data', 'execute_databricks_notebook', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (108, 'source_details', 'datastore_name', 'external_workspace_notebook');
 ```
 
 ```sql
 -- Example 4: Execute warehouse stored procedure
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Processing_Method],[Ingestion_Active])
 VALUES ('ExecuteItems', 4, 109, 'gold', 'dbo.sales_load_audit', 'execute_warehouse_sp', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (109, 'source_details', 'datastore_name', 'sales_warehouse'),
     (109, 'source_details', 'stored_procedure_name', '[dbo].[RunSalesLoad]');
@@ -1190,13 +1190,13 @@ Use this to sort the DataFrame by one or more columns with configurable sort dir
 
 ```sql
 -- Sort by single column descending
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'sort_data', 21, 'column_name', 'created_date'),
     (101, 'data_transformation_steps', 'sort_data', 21, 'sort_direction', 'desc');
 
 -- Sort by multiple columns with different directions
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'sort_data', 21, 'column_name', 'customer_id, order_date'),
     (101, 'data_transformation_steps', 'sort_data', 21, 'sort_direction', 'asc, desc');
@@ -1212,13 +1212,13 @@ Use this to explode an array column into multiple rows. Each array element becom
 
 ```sql
 -- Basic array explosion
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'explode_array', 22, 'column_name', 'tags'),
     (101, 'data_transformation_steps', 'explode_array', 22, 'output_column_name', 'tag');
 
 -- Preserve rows with null/empty arrays
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'explode_array', 22, 'column_name', 'phone_numbers'),
     (101, 'data_transformation_steps', 'explode_array', 22, 'output_column_name', 'phone'),
@@ -1236,13 +1236,13 @@ Use this to flatten a nested struct column into individual columns.
 
 ```sql
 -- Flatten all fields in address struct
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'flatten_struct', 23, 'column_name', 'address');
 -- Result: address_street, address_city, address_zip columns
 
 -- Flatten with custom prefix and specific fields
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'flatten_struct', 23, 'column_name', 'customer_info'),
     (101, 'data_transformation_steps', 'flatten_struct', 23, 'prefix', 'cust_'),
@@ -1263,7 +1263,7 @@ Use this to split a string column into multiple columns based on a delimiter.
 
 ```sql
 -- Split full name into parts
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'split_column', 24, 'column_name', 'full_name'),
     (101, 'data_transformation_steps', 'split_column', 24, 'delimiter', ','),
@@ -1272,7 +1272,7 @@ VALUES
 -- Input: 'John,Doe,Jr' → Output: first_name='John', last_name='Doe', suffix='Jr'
 
 -- Split with pipe delimiter
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'split_column', 24, 'column_name', 'categories'),
     (101, 'data_transformation_steps', 'split_column', 24, 'delimiter', '|'),
@@ -1291,7 +1291,7 @@ Use this to concatenate multiple columns into a single column.
 
 ```sql
 -- Concatenate name columns with space separator
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'concat_columns', 25, 'column_name', 'first_name, last_name'),
     (101, 'data_transformation_steps', 'concat_columns', 25, 'output_column_name', 'full_name'),
@@ -1299,7 +1299,7 @@ VALUES
 -- Input: first_name='John', last_name='Doe' → Output: full_name='John Doe'
 
 -- Build full address with null handling
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'concat_columns', 25, 'column_name', 'street, city, state, zip'),
     (101, 'data_transformation_steps', 'concat_columns', 25, 'output_column_name', 'full_address'),
@@ -1322,7 +1322,7 @@ Important limitation: `conditional_column` only emits literal values from metada
 
 ```sql
 -- Size category based on value
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'conditional_column', 26, 'column_name', 'size_category'),
     (101, 'data_transformation_steps', 'conditional_column', 26, 'conditions', 'size < 10, size < 100'),
@@ -1331,7 +1331,7 @@ VALUES
 -- Equivalent to: CASE WHEN size < 10 THEN 'Small' WHEN size < 100 THEN 'Medium' ELSE 'Large' END
 
 -- Grade based on score
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'conditional_column', 27, 'column_name', 'grade'),
     (101, 'data_transformation_steps', 'conditional_column', 27, 'conditions', 'score >= 90, score >= 80, score >= 70, score >= 60'),
@@ -1340,7 +1340,7 @@ VALUES
 -- Equivalent to: CASE WHEN score >= 90 THEN 'A' WHEN score >= 80 THEN 'B' ... ELSE 'F' END
 
 -- Custom delimiter (when conditions contain commas)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'conditional_column', 28, 'column_name', 'status_label'),
     (101, 'data_transformation_steps', 'conditional_column', 28, 'conditions', 'status = ''A''; status = ''I'''),
@@ -1349,7 +1349,7 @@ VALUES
     (101, 'data_transformation_steps', 'conditional_column', 28, 'default_value', 'Unknown');
 
 -- Risk level based on multiple factors
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'conditional_column', 29, 'column_name', 'risk_level'),
     (101, 'data_transformation_steps', 'conditional_column', 29, 'conditions', 'amount > 10000 AND country != ''US'', amount > 5000'),
@@ -1357,7 +1357,7 @@ VALUES
     (101, 'data_transformation_steps', 'conditional_column', 29, 'default_value', 'Low');
 
 -- If a branch must preserve an existing column value, use derived_column instead
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'derived_column', 30, 'column_name', 'source_table_name'),
     (101, 'data_transformation_steps', 'derived_column', 30, 'expression', 'CASE WHEN source_table_name IS NULL THEN ''silver.dbo.oracle_sales2'' ELSE source_table_name END');
@@ -1391,28 +1391,28 @@ Use this to apply string transformation functions to columns.
 
 ```sql
 -- Convert to uppercase
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'string_functions', 30, 'column_name', 'customer_name'),
     (101, 'data_transformation_steps', 'string_functions', 30, 'function', 'upper'),
     (101, 'data_transformation_steps', 'string_functions', 30, 'output_column_name', 'customer_name_upper');
 
 -- Trim whitespace
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'string_functions', 31, 'column_name', 'description'),
     (101, 'data_transformation_steps', 'string_functions', 31, 'function', 'trim'),
     (101, 'data_transformation_steps', 'string_functions', 31, 'output_column_name', 'description_trimmed');
 
 -- Get string length
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'string_functions', 32, 'column_name', 'notes'),
     (101, 'data_transformation_steps', 'string_functions', 32, 'function', 'length'),
     (101, 'data_transformation_steps', 'string_functions', 32, 'output_column_name', 'notes_length');
 
 -- Apply to ALL string columns using *
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'string_functions', 33, 'column_name', '*'),
     (101, 'data_transformation_steps', 'string_functions', 33, 'function', 'trim'),
@@ -1448,14 +1448,14 @@ Use this to apply multiple text normalization operations in sequence for consist
 
 ```sql
 -- Basic normalization: trim, lowercase, collapse whitespace
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'normalize_text', 28, 'column_name', 'company_name'),
     (101, 'data_transformation_steps', 'normalize_text', 28, 'operations', 'trim,lowercase,collapse_whitespace');
 -- Input: '  ACME   Corp  ' → Output: 'acme corp'
 
 -- Comprehensive normalization for entity matching
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'normalize_text', 28, 'column_name', 'customer_name'),
     (101, 'data_transformation_steps', 'normalize_text', 28, 'operations', 'trim,lowercase,collapse_whitespace,remove_punctuation,strip_accents'),
@@ -1463,13 +1463,13 @@ VALUES
 -- Input: '  José  O''Brien, Jr.  ' → Output: 'jose obrien jr'
 
 -- Normalize multiple columns for matching
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'normalize_text', 29, 'column_name', 'first_name, last_name, company'),
     (101, 'data_transformation_steps', 'normalize_text', 29, 'operations', 'trim,uppercase,remove_special_chars');
 
 -- Apply to ALL string columns using *
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (101, 'data_transformation_steps', 'normalize_text', 30, 'column_name', '*'),
     (101, 'data_transformation_steps', 'normalize_text', 30, 'operations', 'trim,collapse_whitespace');

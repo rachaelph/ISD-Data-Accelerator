@@ -72,7 +72,7 @@ SELECT
     Data_Type_Details,
     Schema_Arrival_Time,
     Job_Run_URL
-FROM dbo.Schema_Changes
+FROM Schema_Changes
 WHERE Table_ID = {Table_ID}
 ORDER BY Schema_Arrival_Time DESC;
 ```
@@ -91,8 +91,8 @@ SELECT
     SUM(CASE WHEN sc.Change_Type = 'Column Dropped' THEN 1 ELSE 0 END) AS Columns_Dropped,
     SUM(CASE WHEN sc.Change_Type = 'Column Type Changed' THEN 1 ELSE 0 END) AS Types_Changed,
     MAX(sc.Schema_Arrival_Time) AS Latest_Change
-FROM dbo.Schema_Changes sc
-JOIN dbo.Date_Dimension d ON sc.Date_Key = d.Date_Key
+FROM Schema_Changes sc
+JOIN Date_Dimension d ON sc.Date_Key = d.Date_Key
 WHERE d.[Date] >= DATEADD(DAY, -{days}, GETUTCDATE())
 GROUP BY sc.Table_ID, sc.Table_Name, sc.Datastore_Name
 ORDER BY Total_Changes DESC;

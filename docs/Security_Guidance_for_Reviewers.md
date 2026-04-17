@@ -250,7 +250,7 @@ If you have limited time, here is where real security-relevant code lives versus
 | `workspace_cicd/workspace_cicd.py` | Deployment script with placeholders | **Skip** — template tokens replaced at deploy time |
 | `<git_folder>/*.sqlnotebook-content.py` | Spark notebooks (data processing) | **Context-dependent** — dynamic SQL is metadata-driven, not user-driven |
 | `<git_folder>/workspace_config.json` | Workspace config | **Skip** — environment-specific IDs, not secrets |
-| `<git_folder>/metadata/` | SQL metadata definitions | **Skip** — data engineer-authored configuration, not executable attack surface |
+| `<engine_folder>/metadata/` | SQL metadata definitions | **Skip** — data engineer-authored configuration, not executable attack surface |
 
 ---
 

@@ -100,7 +100,7 @@ The accelerator produces structured outputs that are designed for downstream AI/
 
 ### Schema Evolution Detection
 - Automatic schema hashing and change detection
-- All schema changes logged to `dbo.Schema_Changes` with column name, old/new type, and timestamp
+- All schema changes logged to `Schema_Changes` with column name, old/new type, and timestamp
 
 ---
 

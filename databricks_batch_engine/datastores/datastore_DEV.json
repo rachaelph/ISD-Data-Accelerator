@@ -1,17 +1,17 @@
 {
   "environment": "DEV",
-  "workspace_id": "",
-  "workspace_url": "",
-  "sql_warehouse_id": "",
+  "workspace_id": "7405606904496964.4",
+  "workspace_url": "https://adb-7405606904496964.4.azuredatabricks.net/",
+  "sql_warehouse_id": "60b48c746b0305c6",
   "layers": {
-    "bronze": { "catalog": "" },
-    "silver": { "catalog": "" },
-    "gold":   { "catalog": "" }
+    "bronze": { "catalog": "kpi_platform" },
+    "silver": { "catalog": "kpi_platform" },
+    "gold":   { "catalog": "kpi_platform" }
   },
   "metadata": {
-    "catalog": "",
-    "schema": "",
-    "sql_warehouse_id": ""
+    "catalog": "kpi_platform",
+    "schema": "metadata",
+    "sql_warehouse_id": "60b48c746b0305c6"
   },
   "external_datastores": {}
 }

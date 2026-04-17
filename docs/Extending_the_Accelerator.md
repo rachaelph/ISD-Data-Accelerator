@@ -69,7 +69,7 @@ def transform_calculate_margin(new_data, metadata, spark):
 ### Step 2: Reference in Metadata
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
 -- Required attributes
@@ -184,7 +184,7 @@ def ingest_with_api_joins(metadata, spark):
 > ⚠️ **Never store actual secrets in metadata.** Store only the Databricks secret scope and key **name** (not value). The function retrieves the actual secret at runtime.
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 (200, 'source_details', 'custom_table_ingestion_function_file', 'custom_complex_ingestion'),

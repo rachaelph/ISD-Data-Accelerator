@@ -1,13 +1,13 @@
 ---
 agent: agent
-description: "Commit metadata + custom code to Fabric workspace: local git push, Fabric Git sync, and direct metadata SQL deployment via Python automation"
+description: "Commit metadata + custom code: local git push, Databricks Repo sync, Datastore_Configuration upsert, and direct metadata SQL deployment via Python automation"
 ---
 
 # Commit Pipeline
 
 Commit and deploy changes for **{{ change_description }}**.
 
-This workflow commits local changes to Git, syncs the Fabric workspace from Git, and **deploys metadata SQL directly to the warehouse** through Python automation (direct SQL execution, not through Fabric T-SQL notebooks which take ~2 minutes).
+This workflow commits local changes to Git, syncs the Databricks Repo from Git, upserts `Datastore_Configuration` from `datastore_<ENV>.json`, and **deploys metadata SQL directly to the warehouse** through Python automation (direct SQL execution against a Databricks SQL warehouse).
 
 ## Execution Order
 
@@ -68,7 +68,7 @@ Prompt-specific additions for `/fdp-04-commit`:
     - If feature overrides are missing, confirm dev-workspace intent immediately after the minimal preflight only when there is no earlier same-target approval in the current chat.
     - If overrides are active, or the same target was already approved earlier in the conversation, proceed without an extra confirmation step.
 4. Show the resolved execution summary.
-    - Include git folder, branch, workspace ID, warehouse endpoint, feature-override status, and files changed under the resolved folder.
+    - Include resolved git folder (if any), branch, Databricks workspace URL, metadata catalog + schema, feature-override status, and the files changed under the resolved scope.
     - This summary can be compact before confirmation and expanded only after the user chooses to proceed.
     - Do not show the raw command unless the user explicitly asked for it.
 5. Execute `automation_scripts/agents/commit_pipeline.py` exactly once.
@@ -112,24 +112,29 @@ python automation_scripts/agents/commit_pipeline.py \
   --pretty
 ```
 
-The pipeline runs five stages in order: **commit → sync Databricks Repo → sync `Datastore_Configuration` from JSON → deploy metadata SQL**. Stage 3 reads `databricks_batch_engine/datastores/datastore_<ENV>.json` (plus any active `overrides/<branch>.json`) and upserts `{metadata_catalog}.{metadata_schema}.Datastore_Configuration` on the metadata warehouse so pipeline runtime helpers see the same layer → catalog/schema mapping that Git declares.
+The pipeline runs four stages in order: **commit → sync Databricks Repo → sync `Datastore_Configuration` from JSON → deploy metadata SQL**. Stage 3 reads `<engine_folder>/datastores/datastore_<ENV>.json` (plus any active `overrides/<branch>.json`) and upserts `{metadata_catalog}.{metadata_schema}.Datastore_Configuration` on the metadata SQL warehouse so pipeline runtime helpers see the same layer → catalog/schema mapping that Git declares. The engine folder is auto-detected (the folder containing `metadata/`, `custom_functions/`, and `datastores/`); override with `FDP_BATCH_ENGINE_FOLDER` if you have more than one.
 
 | Argument | Required | Source | Description |
 |----------|----------|--------|-------------|
-| `--workspace-id` | **Yes** | `resolve_execution_context` → `Variables.metadata_workspace_id` | Target Fabric workspace |
-| `--git-folder-name` | No | `resolve_execution_context` → `GitFolderName` | Git folder to scope changes (e.g. `dev`) |
-| `--source-directory` | No | Defaults to `.` (repo root) | Local repo root path |
-| `--commit-comment` | No | Build from change description | Conventional commit message |
-| `--skip-commit` | No | User request | Skip local git commit+push |
-| `--skip-update` | No | User request | Skip Fabric workspace sync |
-| `--skip-metadata-deploy` | No | User request | Skip metadata SQL deployment |
-| `--pretty` | No (CLI), **Yes for prompt-driven runs** | Required by this workflow for readable progress output | Human-readable step-by-step output |
+| `--repo-id` | No | User or workspace config | Databricks Repos ID to sync after push. Omit to skip the remote Repo sync. |
+| `--git-folder-name` | No | Auto-detected if a `workspace_config.json` exists in a single sub-folder | Scopes `git status` / `git add` to this subtree. Omit for whole-repo commits. |
+| `--source-directory` | No | Defaults to `.` (repo root) | Local repo root path. |
+| `--environment` | No | Defaults to `DEV` | Selects which `datastore_<ENV>.json` is used for the Datastore_Configuration sync. |
+| `--commit-comment` | No | Built from the change description | Conventional commit message. |
+| `--skip-commit` | No | User request | Skip local git commit+push. |
+| `--skip-sync` | No | User request | Skip Databricks Repo sync (requires `--repo-id` when enabled). |
+| `--skip-datastore-sync` | No | User request | Skip the Datastore_Configuration upsert. |
+| `--skip-metadata-deploy` | No | User request | Skip metadata SQL deployment. |
+| `--prune-datastore-config` | No | User request | Also delete `Datastore_Configuration` rows not present in the JSON. |
+| `--pretty` | No (CLI), **Yes for prompt-driven runs** | Required by this workflow | Human-readable step-by-step output. |
+
+> Databricks workspace identity (workspace URL + ID) is declared in `datastore_<ENV>.json` and verified at runtime; it is not passed on the CLI.
 
 ## Output Contract
 
 Return:
 
-1. Resolved workspace context and git folder
+1. Resolved context (git folder if any, branch, Databricks workspace URL, metadata catalog + schema)
 2. Local Git result (`localGitStatus`)
 3. Databricks Repo sync result (`syncStatus`)
 4. Datastore_Configuration sync result (`datastoreConfigSyncStatus`, `datastoreConfigRowsUpserted`, `datastoreConfigTable`)
@@ -138,6 +143,6 @@ Return:
 
 ## Commit Guardrails
 
-- Commit only the files under the resolved git folder; mention unrelated changed files outside that scope rather than pulling them into the commit.
+- When `--git-folder-name` resolves, commit only files under that subtree; mention unrelated changed files outside that scope rather than pulling them into the commit. When no git folder is configured, commit the full working tree.
 - Do not prompt for additional confirmation after the feature-workspace safety guard unless a required parameter is still unresolved or the resolved target/risk has materially changed since the user's earlier approval.
 - Suggest `/fdp-05-run` only after a successful sync or metadata deployment path.

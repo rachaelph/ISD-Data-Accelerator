@@ -39,16 +39,16 @@ Use dimensions when you need descriptive entities and optionally history. The ru
 #### Minimal Type 1 Example
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('MyDataProductTrigger', 3, 19, 'gold', 'dbo.dim_Products', 'product_id', 'batch', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (19, 'source_details', 'table_name', 'Silver.dbo.oracle_Products'),
     (19, 'target_details', 'merge_type', 'merge');
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (19, 'data_transformation_steps', 'create_surrogate_key', 1, 'type', 'auto_increment'),
     (19, 'data_transformation_steps', 'create_surrogate_key', 1, 'column_name', 'product_key');
@@ -57,7 +57,7 @@ VALUES
 #### Minimal SCD2 Example
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (19, 'source_details', 'table_name', 'Silver.dbo.customers'),
     (19, 'target_details', 'merge_type', 'scd2'),
@@ -65,7 +65,7 @@ VALUES
     (19, 'target_details', 'column_to_mark_source_data_deletion', 'is_deleted'),
     (19, 'target_details', 'delete_rows_with_value', 'true');
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (19, 'data_transformation_steps', 'create_surrogate_key', 1, 'type', 'auto_increment'),
     (19, 'data_transformation_steps', 'create_surrogate_key', 1, 'column_name', 'customer_key');
@@ -135,16 +135,16 @@ Fact tables store measurable business events (sales, orders, transactions) and r
 #### Basic Fact Table Load
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('SalesFacts', '4', '20', 'gold', 'dbo.fact_Sales', 'sale_id', 'batch','1')
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     ('20', 'source_details', 'table_name', 'Silver.dbo.sales_transactions')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Insert surrogate key from product dimension
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
@@ -167,16 +167,16 @@ In the `dimension_table_join_logic` SQL condition:
 #### Multiple Dimension Lookups
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('SalesFacts', '4', '20', 'gold', 'dbo.fact_Sales', 'sale_id', 'batch','1')
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     ('20', 'source_details', 'table_name', 'Silver.dbo.sales_transactions')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Product dimension lookup
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
@@ -211,7 +211,7 @@ Surrogate keys are inserted based on `Configuration_Name_Instance_Number` (1, 2,
 **Scenario 1: Dimension has non-standard surrogate key column**
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_join_logic', 'a.product_id = b.product_id'),
@@ -223,7 +223,7 @@ VALUES
 **Scenario 2: Custom column name in fact table**
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_join_logic', 'a.product_id = b.product_id'),
@@ -237,7 +237,7 @@ VALUES
 Add commonly used dimension attributes directly to fact table for query performance:
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_join_logic', 'a.product_id = b.product_id'),
@@ -263,7 +263,7 @@ Fact table will have both:
 When joining to SCD2 dimensions, ensure you get the current version:
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Customer'),
     -- Join logic includes scd_active filter for SCD2 dimension
@@ -281,7 +281,7 @@ VALUES
 #### Merge Type Options for Facts
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     ('20', 'target_details', 'merge_type', 'append')
 ```
@@ -303,7 +303,7 @@ VALUES
 Mark or remove deleted transactions from source:
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     ('20', 'source_details', 'table_name', 'Silver.dbo.sales_transactions'),
     
@@ -318,7 +318,7 @@ VALUES
 **Alternatives to hard delete:**
 ```sql
 -- Instead of deleting, keep cancelled transactions with flag
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Filter out cancelled transactions from fact
     ('20', 'data_transformation_steps', 'filter_data', '1', 'filter_logic', 'is_cancelled = false')
@@ -331,12 +331,12 @@ VALUES
 
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('SalesDataMart', '4', '20', 'gold', 'dbo.fact_Sales', 'sale_id, line_item_id', 'batch','1')
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     ('20', 'source_details', 'table_name', 'Silver.dbo.sales_transactions'),
     
@@ -347,7 +347,7 @@ VALUES
     ('20', 'target_details', 'column_to_mark_source_data_deletion', 'is_cancelled'),
     ('20', 'target_details', 'delete_rows_with_value', 'true')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Product dimension with denormalization
     ('20', 'data_transformation_steps', 'attach_dimension_surrogate_key', '1', 'dimension_table_name', 'Gold.dbo.dim_Product'),
@@ -414,14 +414,14 @@ When fact references dimension that doesn't exist:
 **Option 2: Filter Out Missing Dimensions**
 ```sql
 -- After surrogate key lookup, filter out rows with -1
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_transformation_steps', 'filter_data', '5', 'filter_logic', 'product_sk != -1 AND customer_sk != -1')
 ```
 
 **Option 3: Quarantine for Review**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     ('20', 'data_quality', 'validate_condition', '1', 'condition', 'product_sk != -1 AND customer_sk != -1'),
     ('20', 'data_quality', 'validate_condition', '1', 'if_not_compliant', 'quarantine'),

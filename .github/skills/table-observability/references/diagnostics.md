@@ -17,7 +17,7 @@ SELECT TOP 5
     Records_Processed, Quarantined_Records,
     DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds,
     Ingestion_Start_Time
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Table_ID = {Table_ID}
 ORDER BY Ingestion_End_Time DESC;
 ```
@@ -33,7 +33,7 @@ SELECT TOP 10
     Data_Quality_Category, Data_Quality_Result,
     Data_Quality_Message, Rows_Impacted, Rows_Quarantined,
     Ingestion_Start_Time
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Table_ID = {Table_ID}
 ORDER BY Ingestion_Start_Time DESC;
 ```
@@ -45,7 +45,7 @@ ORDER BY Ingestion_Start_Time DESC;
 -- Part C: Recent schema changes for Table_ID = {Table_ID}
 SELECT
     Change_Type, Column_Name, Data_Type_Details, Schema_Arrival_Time
-FROM dbo.Schema_Changes
+FROM Schema_Changes
 WHERE Table_ID = {Table_ID}
 ORDER BY Schema_Arrival_Time DESC;
 ```
@@ -58,11 +58,11 @@ ORDER BY Schema_Arrival_Time DESC;
 SELECT
     Column_Name, Data_Type, Null_Percent,
     Approx_Distinct_Values, Total_Rows, Data_Profile_Execution_Time
-FROM dbo.Exploratory_Data_Analysis_Results
+FROM Exploratory_Data_Analysis_Results
 WHERE Table_ID = {Table_ID}
   AND Data_Profile_Execution_Time = (
       SELECT MAX(Data_Profile_Execution_Time)
-      FROM dbo.Exploratory_Data_Analysis_Results
+      FROM Exploratory_Data_Analysis_Results
       WHERE Table_ID = {Table_ID}
   )
 ORDER BY Column_Name;
@@ -89,8 +89,8 @@ SELECT
     rl.Step_Name,
     rl.Step_Number,
     rl.Message
-FROM dbo.Data_Pipeline_Logs l
-LEFT JOIN dbo.Activity_Run_Logs rl
+FROM Data_Pipeline_Logs l
+LEFT JOIN Activity_Run_Logs rl
     ON l.Log_ID = rl.Log_ID
 WHERE l.Table_ID = {Table_ID}
   AND l.Ingestion_Status = 'Failed'
@@ -107,7 +107,7 @@ SELECT
     Data_Quality_Message,
     Rows_Impacted,
     Rows_Quarantined
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Log_ID = '{Log_ID}'
   AND Table_ID = {Table_ID};
 ```

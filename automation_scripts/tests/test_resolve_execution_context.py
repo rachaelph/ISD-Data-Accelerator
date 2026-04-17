@@ -11,24 +11,37 @@ from pathlib import Path
 SCRIPT_PATH = Path(__file__).resolve().parent.parent / "agents" / "resolve_execution_context.py"
 
 
-class ResolveExecutionContextTests(unittest.TestCase):
-    def write_workspace_config(self, repo_root: Path) -> None:
-        dev_path = repo_root / "dev"
-        dev_path.mkdir(parents=True, exist_ok=True)
-        (dev_path / "workspace_config.json").write_text(
-            json.dumps(
-                {
-                    "sql_warehouse_id": "wh-abc123",
-                    "metadata_database": "my_catalog.metadata",
-                }
-            ),
-            encoding="utf-8",
-        )
+def _write_engine_fixture(repo_root: Path) -> None:
+    engine = repo_root / "databricks_batch_engine"
+    (engine / "metadata").mkdir(parents=True, exist_ok=True)
+    (engine / "custom_functions").mkdir(parents=True, exist_ok=True)
+    (engine / "datastores").mkdir(parents=True, exist_ok=True)
+    (engine / "datastores" / "datastore_DEV.json").write_text(
+        json.dumps(
+            {
+                "environment": "DEV",
+                "workspace_id": "1111111111111111",
+                "workspace_url": "https://adb-1111111111111111.1.azuredatabricks.net",
+                "sql_warehouse_id": "wh-abc123",
+                "layers": {
+                    "bronze": {"catalog": "dev_bronze"},
+                    "silver": {"catalog": "dev_silver"},
+                },
+                "metadata": {
+                    "catalog": "my_catalog",
+                    "schema": "metadata",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
-    def test_resolves_context_for_git_folder(self) -> None:
+
+class ResolveExecutionContextTests(unittest.TestCase):
+    def test_resolves_context_from_datastore_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
-            self.write_workspace_config(repo_root)
+            _write_engine_fixture(repo_root)
 
             result = subprocess.run(
                 [
@@ -36,8 +49,8 @@ class ResolveExecutionContextTests(unittest.TestCase):
                     str(SCRIPT_PATH),
                     "--source-directory",
                     str(repo_root),
-                    "--git-folder-name",
-                    "dev",
+                    "--environment",
+                    "DEV",
                     "--required-variable",
                     "sql_warehouse_id",
                     "--required-variable",
@@ -50,12 +63,17 @@ class ResolveExecutionContextTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             payload = json.loads(result.stdout)
-            self.assertEqual(payload["GitFolderName"], "dev")
+            self.assertEqual(payload["Environment"], "DEV")
+            self.assertEqual(payload["EngineFolderName"], "databricks_batch_engine")
+            self.assertIsNone(payload["GitFolderName"])
             self.assertEqual(payload["Variables"]["sql_warehouse_id"], "wh-abc123")
             self.assertEqual(payload["Variables"]["metadata_database"], "my_catalog.metadata")
+            self.assertEqual(payload["Variables"]["metadata_catalog"], "my_catalog")
+            self.assertEqual(payload["Variables"]["metadata_schema"], "metadata")
             self.assertFalse(payload["HasOverrides"])
-            self.assertIn("base workspace config", payload["OverrideStatusMessage"])
+            self.assertIn("base datastore config", payload["OverrideStatusMessage"])
 
 
 if __name__ == "__main__":
     unittest.main()
+

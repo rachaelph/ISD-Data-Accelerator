@@ -69,8 +69,8 @@ Not allowed before that bar is met:
 ## Workflow
 
 0. **Triage the request**: If the run status is `Processed` and the user is asking why rows were quarantined, marked, or warned, route to `/fdp-06-investigate` instead of continuing this workflow.
-1. **Resolve the smallest missing failure input**: Ask only for the next missing direct-path input such as environment, Trigger_Name, Table_ID or table plus layer, error text, Fabric Monitor URL, `Trigger_Execution_ID`, or `Log_ID`.
-2. **Drill into nested activities directly**: If the user supplied a Fabric Monitor URL or run context, open the failed run, find the failed activity, click Output, follow nested pipelines or `ForEach`, and stop at the deepest concrete error instead of broadening into repo research.
+1. **Resolve the smallest missing failure input**: Ask only for the next missing direct-path input such as environment, Trigger_Name, Table_ID or table plus layer, error text, Databricks job run URL, `Trigger_Execution_ID`, or `Log_ID`.
+2. **Drill into nested activities directly**: If the user supplied a Databricks job run URL or run context, open the failed run, find the failed task, expand its output, follow any chained tasks, and stop at the deepest concrete error instead of broadening into repo research.
 3. **For notebook failures**: Open the notebook snapshot and capture the first failing cell output plus the parameter cell.
 4. **Query the strongest direct evidence path**: Use observability skill helpers when warehouse-backed evidence is the fastest way to reach root cause. For successful single-table follow-up, prefer `LatestRunWithDQByTable` in the resolved environment. For successful multi-table or full-trigger follow-up, prefer `LatestRunWithDQByTrigger` with `--trigger-name` and optional `--table-ids`. Use `RunOutcomeWithDQ` or `RunByExecution` and `ActivityLogsByExecution` only when `Trigger_Execution_ID` correlation is actually required. Use `ActivityLogsByLogId` or `DQByLogId` directly when `Log_ID` is already known. Fallback: `diagnostics.md` CD-2 only after the direct helper path fails. Note: `Activity_Run_Logs` stores logs from both notebook and pipeline sources; filter by `Source_Type` when needed.
   Always pass the resolved metadata environment to helper-script queries; for Dev investigations, use `--environment DEV`.
@@ -105,7 +105,7 @@ Not allowed before that bar is met:
 | Trigger_Name | Filter logs, identify pipeline context |
 | Table_ID | Pinpoint specific entity that failed |
 | Error message text | Pattern matching to known issues |
-| Fabric Monitor URL | Direct access to pipeline run details |
+| Databricks job run URL | Direct access to job run details |
 | Notebook snapshot link | For notebook failures — contains actual error |
 | Source query or sample source rows | Lets Copilot prove whether the failure originates upstream rather than in downstream metadata or target state |
 | Sample offending rows | Lets the user see the actual duplicate or conflicting records |
@@ -145,7 +145,7 @@ Every completed troubleshooting answer should include both:
 2. **What to change**
   - The most likely fix in metadata, data, or orchestration
   - Why that fix addresses the failure
-  - Whether Copilot can implement the fix locally or whether the user needs to inspect Fabric/source data first
+  - Whether Copilot can implement the fix locally or whether the user needs to inspect the Databricks workspace/source data first
   - If there are multiple ways to resolve the failure, show them in a compact Markdown table and mark the recommended option explicitly
 
 If the Evidence-Before-Fix Contract is not yet satisfied, stop after section 1, say the investigation is not yet deep enough for a trustworthy fix recommendation, and continue with the next direct troubleshooting step.

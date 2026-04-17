@@ -28,11 +28,11 @@ SELECT
     [Max],
     Data_Profile_Execution_Time,
     Table_Last_Modified_Time
-FROM dbo.Exploratory_Data_Analysis_Results
+FROM Exploratory_Data_Analysis_Results
 WHERE Table_ID = {Table_ID}
   AND Data_Profile_Execution_Time = (
       SELECT MAX(Data_Profile_Execution_Time)
-      FROM dbo.Exploratory_Data_Analysis_Results
+      FROM Exploratory_Data_Analysis_Results
       WHERE Table_ID = {Table_ID}
   )
 ORDER BY Column_Name;
@@ -51,10 +51,10 @@ SELECT TOP 20
     Null_Count,
     Total_Rows,
     Data_Profile_Execution_Time
-FROM dbo.Exploratory_Data_Analysis_Results
+FROM Exploratory_Data_Analysis_Results
 WHERE Data_Profile_Execution_Time = (
     SELECT MAX(Data_Profile_Execution_Time)
-    FROM dbo.Exploratory_Data_Analysis_Results e2
+    FROM Exploratory_Data_Analysis_Results e2
     WHERE e2.Table_ID = Exploratory_Data_Analysis_Results.Table_ID
 )
   AND Null_Percent > 0
@@ -74,7 +74,7 @@ SELECT
     MAX(Table_Last_Modified_Time) AS Last_Modified,
     MAX(Data_Profile_Execution_Time) AS Last_Profiled,
     DATEDIFF(HOUR, MAX(Table_Last_Modified_Time), GETUTCDATE()) AS Hours_Since_Modified
-FROM dbo.Exploratory_Data_Analysis_Results
+FROM Exploratory_Data_Analysis_Results
 GROUP BY Table_ID, Table_Name, Datastore_Name, Target_Medallion_Layer
 ORDER BY Hours_Since_Modified DESC;
 ```

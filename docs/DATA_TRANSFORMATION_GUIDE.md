@@ -59,16 +59,16 @@ Custom transformation functions allow you to apply complex business logic that g
 #### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('custom_transformation_function', 1, 40, 'gold', 'dbo.oracle_Sales3', 'Prod_Id, Cust_Id, Time_Id, Channel_Id, Promo_Id', 'batch', 1);
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (40, 'source_details', 'table_name', 'Silver.dbo.oracle_Sales')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Multiple custom functions can be chained (executed in order listed)
     -- Comma-separated list of function names
@@ -97,7 +97,7 @@ The example notebook includes:
 You can apply multiple custom function steps by increasing the `Configuration_Name_Instance_Number`:
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- First custom function step
     (40, 'data_transformation_steps', 'custom_transformation_function', 1, 'functions_to_execute', 'calculate_revenue_metrics'),
@@ -155,7 +155,7 @@ The 10 types are: `validate_condition`, `validate_referential_integrity`, `valid
 | Capability | Function | When It Runs | What It Does |
 |-----------|----------|-------------|-------------|
 | **Schema Contract Validation** | `validate_table_schema_contract` | Automatically during Delta-to-Delta and Parquet ingestion when a `schema` is defined in `source_details` | Fails the pipeline if the source DataFrame is missing expected columns or has wrong data types. Extra columns are allowed (forward-compatible). |
-| **Schema Change Detection** | `_handle_schema_change_validation` | Automatically after every write | Detects added/removed/changed columns vs. the previously logged schema. Logs changes to `dbo.Schema_Logs` and `dbo.Schema_Changes`. |
+| **Schema Change Detection** | `_handle_schema_change_validation` | Automatically after every write | Detects added/removed/changed columns vs. the previously logged schema. Logs changes to `Schema_Logs` and `Schema_Changes`. |
 | **Schema Drift Enforcement** | `fail_on_new_schema` config | When configured in `source_details` | Fails the pipeline if the source schema has changed since last run. Prevents unexpected schema drift from propagating downstream. |
 
 > **How to configure:** Set the `schema` attribute in `source_details` to define your expected columns/types. Optionally set `fail_on_new_schema = 'true'` to enforce strict schema stability. See [Schema Enforcement Behavior by File Format](#schema-enforcement-behavior-by-file-format) for format-specific details.
@@ -168,12 +168,12 @@ The 10 types are: `validate_condition`, `validate_referential_integrity`, `valid
 #### Example Configuration with Multiple Quality Checks
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('query', 1, 41, 'gold', 'dbo.oracle_Sales3', 'Prod_Id, Cust_Id, Time_Id, Channel_Id, Promo_Id', 'batch', 1);
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (41, 'source_details', 'table_name', 'Silver.dbo.oracle_Sales'),
     -- Overwrite target table on each run (see Data Modeling section for all merge_type options)
@@ -185,7 +185,7 @@ VALUES
     -- (41, 'watermark_details', 'column_name', 'ModifiedDate, CreatedDate'),
     -- (41, 'watermark_details', 'data_type', 'datetime')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- 1. FILTER DATA: Uses Spark SQL syntax, supports multiple columns and functions
     -- Can have multiple filter steps by increasing Configuration_Name_Instance_Number
@@ -356,12 +356,12 @@ Combine custom ingestion logic with automated data cleansing steps to standardiz
 #### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('query', 1, 50, 'gold', 'dbo.oracle_Sales3', 'Prod_Id, Cust_Id, Time_Id, Channel_Id, Promo_Id', 'batch', 1)
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Custom ingestion function details (for table/SQL-based extraction)
     (50, 'source_details', 'custom_table_ingestion_function', 'extract_sales_with_aggregations'),
@@ -394,7 +394,7 @@ VALUES
     -- Use '*' for all columns or comma-separated list for specific columns
     (50, 'data_cleansing', 'trim_data_in_string_columns', '*')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Remove duplicate rows
     -- Mode is determined by presence of 'order_by':
@@ -574,12 +574,12 @@ Use Delta Lake's Change Data Feed for incremental loading from Delta tables. CDF
 #### Example Configuration
 ```sql
 -- Orchestration Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('SalesWithCDF', 1, 60, 'gold', 'dbo.sales_enriched', 'sale_id', 'batch', 1)
 
 -- Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Source table (must have CDF enabled)
     (60, 'source_details', 'table_name', 'silver.dbo.sales'),
@@ -696,17 +696,17 @@ Understanding of:
 ```sql
 -- Orchestration Table
 -- Primary keys are ALWAYS: {Primary_Dataset_Alias}_match_id, {Secondary_Dataset_Alias}_match_id
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES 
     ('EntityMatching', 1, 47, 'gold', 'dbo.Customer_Match_Results', 'table1_match_id, table2_match_id', 'batch', 1);
 
 --Primary Config Table
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Primary dataset (source of records to match)
     (47, 'source_details', 'table_name', 'Silver.dbo.Customers_Dataset_A')
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Secondary dataset (can be same table for deduplication or different table for cross-system matching)
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'secondary_dataset_query', 'SELECT * FROM Silver.dbo.Customers_Dataset_B'),
@@ -779,7 +779,7 @@ The entity resolution output includes:
 **Self-Join for Deduplication:**
 ```sql
 -- Find duplicates within same dataset
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Use same table for both primary and secondary
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'secondary_dataset_query', 
@@ -796,7 +796,7 @@ VALUES
 **Numeric Percent Difference:**
 ```sql
 -- Match products with similar prices
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'primary_dataset_comparison_fields', 'product_name, price, weight'),
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'secondary_dataset_comparison_fields', 'product_name, price, weight'),
@@ -809,7 +809,7 @@ VALUES
 **Phonetic Matching for Names:**
 ```sql
 -- Match companies with different spellings but same pronunciation
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'primary_dataset_comparison_fields', 'company_name, city'),
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'secondary_dataset_comparison_fields', 'company_name, city'),
@@ -822,7 +822,7 @@ VALUES
 **Complex Multi-Criteria Matching:**
 ```sql
 -- Sophisticated matching with multiple confidence levels
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (47, 'data_transformation_steps', 'entity_resolution', 1, 'primary_dataset_comparison_fields', 
      'first_name, last_name, email, phone, address, city, state, zip'),
@@ -914,15 +914,15 @@ Execution order is controlled by `Configuration_Name_Instance_Number` within `da
 
 #### Basic Example Configuration
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('Transformations', 1, 48, 'gold', 'dbo.Product_Analysis', 'product_id', 'batch', 1);
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (48, 'source_details', 'table_name', 'Silver.dbo.Products');
 
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (48, 'data_transformation_steps', 'columns_to_rename', 1, 'existing_column_name', 'PROD_UNIT_OF_MEASURE'),
     (48, 'data_transformation_steps', 'columns_to_rename', 1, 'new_column_name', 'unit_of_measure'),
@@ -1063,7 +1063,7 @@ For the full parameter list and accepted values for each transformation, use [ME
 
 ```sql
 -- Comprehensive transformation pipeline
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- 1. Rename columns for standardization
     (48, 'data_transformation_steps', 'columns_to_rename', 1, 'existing_column_name', 'CUST_ID'),

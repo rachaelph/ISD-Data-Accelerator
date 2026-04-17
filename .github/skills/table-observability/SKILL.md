@@ -115,23 +115,23 @@ If a table name exists in bronze, silver, and gold, ask the user which layer the
 
 | Table | Purpose | Primary keys |
 |-------|---------|--------------|
-| `dbo.Data_Pipeline_Logs` | Run status, row counts, timings, watermarks. A logical execution can emit phase-specific rows for `Staging`, `Batch`, or both. | `Log_ID`, `Processing_Phase`, `Ingestion_Status` |
-| `dbo.Activity_Run_Logs` | Structured per-step messages for a run; populated by batch notebook processing and pipeline error logging. `Table_ID` enables independent lookup when `Data_Pipeline_Logs` has no matching row. | `Log_ID`, `Sequence_Number` |
-| `dbo.Data_Quality_Notifications` | DQ results and quarantine outcomes | `Log_ID`, `Table_ID`, `Date_Key` |
-| `dbo.Schema_Logs` | Schema snapshots and `Schema_ID` | `Table_ID`, `Date_Key` |
-| `dbo.Schema_Changes` | Column-level drift history | `Table_ID`, `Date_Key` |
-| `dbo.Data_Pipeline_Lineage` | Source-to-target lineage graph | `Source_Table_ID`, `Target_Table_ID`, `Trigger_Name`, `Date_Key` |
-| `dbo.Exploratory_Data_Analysis_Results` | Cached profiling metrics | `Table_ID`, `Date_Key` |
+| `Data_Pipeline_Logs` | Run status, row counts, timings, watermarks. A logical execution can emit phase-specific rows for `Staging`, `Batch`, or both. | `Log_ID`, `Processing_Phase`, `Ingestion_Status` |
+| `Activity_Run_Logs` | Structured per-step messages for a run; populated by batch notebook processing and pipeline error logging. `Table_ID` enables independent lookup when `Data_Pipeline_Logs` has no matching row. | `Log_ID`, `Sequence_Number` |
+| `Data_Quality_Notifications` | DQ results and quarantine outcomes | `Log_ID`, `Table_ID`, `Date_Key` |
+| `Schema_Logs` | Schema snapshots and `Schema_ID` | `Table_ID`, `Date_Key` |
+| `Schema_Changes` | Column-level drift history | `Table_ID`, `Date_Key` |
+| `Data_Pipeline_Lineage` | Source-to-target lineage graph | `Source_Table_ID`, `Target_Table_ID`, `Trigger_Name`, `Date_Key` |
+| `Exploratory_Data_Analysis_Results` | Cached profiling metrics | `Table_ID`, `Date_Key` |
 
-For `dbo.Data_Pipeline_Logs`, treat `Staging` and `Batch` as phase-specific rows under the same logical execution when both exist. Use `Batch` when you only need the terminal outcome, and include `Staging` whenever the question is about landing, extraction, or end-to-end troubleshooting.
+For `Data_Pipeline_Logs`, treat `Staging` and `Batch` as phase-specific rows under the same logical execution when both exist. Use `Batch` when you only need the terminal outcome, and include `Staging` whenever the question is about landing, extraction, or end-to-end troubleshooting.
 
 ### Metadata configuration tables
 
 | Table | Purpose | Primary keys |
 |-------|---------|--------------|
-| `dbo.Data_Pipeline_Metadata_Orchestration` | What runs, where it lands, and in what order | `Trigger_Name`, `Table_ID` |
-| `dbo.Data_Pipeline_Metadata_Primary_Configuration` | Key-value config such as source, target, watermark | `Table_ID`, `Configuration_Category`, `Configuration_Name` |
-| `dbo.Data_Pipeline_Metadata_Advanced_Configuration` | Multi-attribute config such as DQ rules and transformations | `Table_ID`, `Configuration_Category`, `Configuration_Name`, `Configuration_Name_Instance_Number` |
+| `Data_Pipeline_Metadata_Orchestration` | What runs, where it lands, and in what order | `Trigger_Name`, `Table_ID` |
+| `Data_Pipeline_Metadata_Primary_Configuration` | Key-value config such as source, target, watermark | `Table_ID`, `Configuration_Category`, `Configuration_Name` |
+| `Data_Pipeline_Metadata_Advanced_Configuration` | Multi-attribute config such as DQ rules and transformations | `Table_ID`, `Configuration_Category`, `Configuration_Name`, `Configuration_Name_Instance_Number` |
 
 #### `Data_Pipeline_Metadata_Orchestration` columns
 
@@ -141,9 +141,9 @@ For `dbo.Data_Pipeline_Logs`, treat `Staging` and `Batch` as phase-specific rows
 
 | Table | Purpose |
 |-------|---------|
-| `dbo.Date_Dimension` | Human-readable date attributes via `Date_Key` |
-| `dbo.Datastore_Configuration` | Datastore name to endpoint and workspace details |
-| `dbo.Metadata_Files` | Metadata deployment tracking |
+| `Date_Dimension` | Human-readable date attributes via `Date_Key` |
+| `Datastore_Configuration` | Datastore name to endpoint and workspace details |
+| `Metadata_Files` | Metadata deployment tracking |
 
 See `references/metadata-warehouse-reference.md` for full join rules, canonical columns, stored procedures, notebook writers, and documentation links.
 

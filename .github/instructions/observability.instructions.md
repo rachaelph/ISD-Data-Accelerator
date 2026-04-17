@@ -14,16 +14,16 @@ The accelerator's observability layer consists of **6 logging/profiling tables**
 
 | Table | Purpose | Written By |
 |-------|---------|-----------|
-| `dbo.Data_Pipeline_Logs` | Run history: status, row counts, errors, watermarks | SP `Log_Data_Movement` via `NB_Helper_Functions_3` |
-| `dbo.Data_Quality_Notifications` | DQ check results: warnings, failures, quarantine counts | SP `Log_Data_Movement` (parsed from DQ JSON) |
-| `dbo.Schema_Logs` | Schema snapshots as PySpark JSON, hash via `Schema_ID` | SP `Log_New_Schema` via `NB_Helper_Functions_3` |
-| `dbo.Schema_Changes` | Column-level drift: added, dropped, type changed | SP `Log_New_Schema` (parsed from changes JSON) |
-| `dbo.Data_Pipeline_Lineage` | Source→target lineage graph with depth and narratives | `NB_Generate_Lineage` (direct INSERT) |
-| `dbo.Exploratory_Data_Analysis_Results` | Column-level profiling: nulls, distinct counts, stats | `NB_Run_Exploratory_Data_Analysis` (direct INSERT) |
+| `Data_Pipeline_Logs` | Run history: status, row counts, errors, watermarks | SP `Log_Data_Movement` via `NB_Helper_Functions_3` |
+| `Data_Quality_Notifications` | DQ check results: warnings, failures, quarantine counts | SP `Log_Data_Movement` (parsed from DQ JSON) |
+| `Schema_Logs` | Schema snapshots as PySpark JSON, hash via `Schema_ID` | SP `Log_New_Schema` via `NB_Helper_Functions_3` |
+| `Schema_Changes` | Column-level drift: added, dropped, type changed | SP `Log_New_Schema` (parsed from changes JSON) |
+| `Data_Pipeline_Lineage` | Source→target lineage graph with depth and narratives | `NB_Generate_Lineage` (direct INSERT) |
+| `Exploratory_Data_Analysis_Results` | Column-level profiling: nulls, distinct counts, stats | `NB_Run_Exploratory_Data_Analysis` (direct INSERT) |
 
 | Supporting Table | Purpose |
 |-----------------|---------|
-| `dbo.Date_Dimension` | Human-readable date fields. All logging tables FK via `Date_Key` (INT, YYYYMMDD). |
+| `Date_Dimension` | Human-readable date fields. All logging tables FK via `Date_Key` (INT, YYYYMMDD). |
 
 | Stored Procedure | Parameters | Purpose |
 |-----------------|------------|---------|
@@ -93,7 +93,7 @@ See `.github/skills/table-observability/SKILL.md` → **"How to Connect and Exec
 |------------------|-----|
 | Add `NOT NULL` constraints to logging columns | Notebooks handle nullability — SP inserts would fail |
 | Rename columns in logging tables | Breaks 7+ notebooks and 7 stored procedures that reference these columns by name |
-| Add foreign keys | Fabric Warehouse does not enforce foreign keys; adding them creates false expectations |
+| Add foreign keys | Delta/Unity Catalog does not enforce foreign keys; adding them creates false expectations |
 | Change `Date_Key` from INT to DATE | Breaks all YYYYMMDD-format joins across the entire logging layer |
 | Modify `Log_Data_Movement` SP without updating `NB_Helper_Functions_3` | The notebook constructs the parameter payload — signature changes break ingestion |
 | Modify `Log_New_Schema` SP without updating `NB_Helper_Functions_3` | Same — notebook calls this SP with specific parameter structure |
@@ -134,10 +134,10 @@ Grep across `docs/` for the user's keywords. Observability-specific search patte
 
 | Metadata Table | Purpose |
 |----------------|---------|
-| `dbo.Data_Pipeline_Metadata_Orchestration` | Master list: triggers, tables, execution order |
-| `dbo.Data_Pipeline_Metadata_Primary_Configuration` | Key-value config: source, target, watermark |
-| `dbo.Data_Pipeline_Metadata_Advanced_Configuration` | Multi-attribute config: transformations, DQ rules |
-| `dbo.Datastore_Configuration` | Connection details: endpoints, workspace IDs |
+| `Data_Pipeline_Metadata_Orchestration` | Master list: triggers, tables, execution order |
+| `Data_Pipeline_Metadata_Primary_Configuration` | Key-value config: source, target, watermark |
+| `Data_Pipeline_Metadata_Advanced_Configuration` | Multi-attribute config: transformations, DQ rules |
+| `Datastore_Configuration` | Connection details: endpoints, workspace IDs |
 
 > For full metadata query templates, see `.github/skills/table-observability/SKILL.md` → Domain 7: Metadata Configuration.
 > For live data query templates, see `.github/skills/table-observability/SKILL.md` → Domain 8: Live Data Queries.

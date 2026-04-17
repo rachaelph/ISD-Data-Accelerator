@@ -638,7 +638,7 @@ def find_insert_sections(content: str) -> dict:
     section_start = 0
 
     for i, line in enumerate(lines, 1):
-        match = re.search(r'INSERT INTO\s+(?:\[?dbo\]?\.\[?)(Data_Pipeline_\w+)\]?', line, re.IGNORECASE)
+        match = re.search(r'INSERT INTO\s+(?:\[?dbo\]?\.)?\[?(Data_Pipeline_\w+)\]?', line, re.IGNORECASE)
         if match:
             if current_section:
                 sections[current_section] = {'start': section_start, 'end': i - 1, 'lines': lines[section_start-1:i-1]}
@@ -1059,10 +1059,11 @@ def validate_orchestration(result: ValidationResult, orch_rows: list, environmen
         is_file_output_path = '/' in row['target_entity']
 
         if not is_file_output_path:
-            if '.' not in row['target_entity']:
-                result.add_issue('warning', 'orchestration', f"Target_Entity should include schema: '{row['target_entity']}'", table_id=table_id, line_number=line_num,
-                    suggestion=f"Use 2-part naming: 'dbo.{row['target_entity']}' (schema.table_name)")
-
+            # Target_Entity can be a bare table name (recommended). The runtime
+            # qualifies it as <catalog>.<schema>.<table> using the row in
+            # Datastore_Configuration that matches Target_Datastore. 2-part
+            # 'schema.table' and 3-part 'catalog.schema.table' forms are also
+            # accepted.
             parts = [p.strip() for p in row['target_entity'].split('.')]
             if any(not p for p in parts):
                 result.add_issue('error', 'orchestration',
@@ -1190,11 +1191,11 @@ def validate_primary_config(result: ValidationResult, primary_rows: list, orch_r
 
         if orch_table_ids and table_id not in orch_table_ids:
             result.add_issue('warning', 'primary_config', f"Table_ID {table_id} not in Orchestration", table_id=table_id, line_number=line_num,
-                suggestion=f"Add a row to dbo.Data_Pipeline_Orchestration with Table_ID={table_id}, or change this to match an existing Table_ID.")
+                suggestion=f"Add a row to Data_Pipeline_Orchestration with Table_ID={table_id}, or change this to match an existing Table_ID.")
 
         if category in ADVANCED_CONFIG_CATEGORIES:
             result.add_issue('error', 'category_placement', f"Category '{category}' belongs in Advanced Config", table_id=table_id, line_number=line_num,
-                suggestion=f"Move this row from dbo.Data_Pipeline_Primary_Config to dbo.Data_Pipeline_Advanced_Config. Category '{category}' requires Instance_Number.")
+                suggestion=f"Move this row from Data_Pipeline_Primary_Config to Data_Pipeline_Advanced_Config. Category '{category}' requires Instance_Number.")
         elif category not in PRIMARY_CONFIG_CATEGORIES:
             result.add_issue('error', 'invalid_category', f"Unknown category: '{category}'", table_id=table_id, line_number=line_num,
                 suggestion=f"Valid primary config categories: {', '.join(sorted(PRIMARY_CONFIG_CATEGORIES))}")
@@ -1482,11 +1483,11 @@ def validate_advanced_config(result: ValidationResult, advanced_rows: list, orch
 
         if orch_table_ids and table_id not in orch_table_ids:
             result.add_issue('warning', 'advanced_config', f"Table_ID {table_id} not in Orchestration", table_id=table_id, line_number=line_num,
-                suggestion=f"Add a row to dbo.Data_Pipeline_Orchestration with Table_ID={table_id}, or change this to match an existing Table_ID.")
+                suggestion=f"Add a row to Data_Pipeline_Orchestration with Table_ID={table_id}, or change this to match an existing Table_ID.")
 
         if category in PRIMARY_CONFIG_CATEGORIES:
             result.add_issue('error', 'category_placement', f"Category '{category}' belongs in Primary Config", table_id=table_id, line_number=line_num,
-                suggestion=f"Move this row from dbo.Data_Pipeline_Advanced_Config to dbo.Data_Pipeline_Primary_Config. Category '{category}' does not use Instance_Number.")
+                suggestion=f"Move this row from Data_Pipeline_Advanced_Config to Data_Pipeline_Primary_Config. Category '{category}' does not use Instance_Number.")
         elif category not in ADVANCED_CONFIG_CATEGORIES:
             result.add_issue('error', 'invalid_category', f"Unknown category: '{category}'", table_id=table_id, line_number=line_num,
                 suggestion=f"Valid advanced config categories: {', '.join(sorted(ADVANCED_CONFIG_CATEGORIES))}")
@@ -1551,7 +1552,7 @@ def validate_advanced_config(result: ValidationResult, advanced_rows: list, orch
         if attribute in ['right_table_name', 'dimension_table_name', 'reference_table_name']:
             if value and len(value.split('.')) != 3:
                 result.add_issue('error', 'three_part_naming', f"{attribute} should use 3-part naming: '{value}'", table_id=table_id, line_number=line_num,
-                    suggestion="Use format: lakehouse_name.schema.table_name (e.g., 'silver.dbo.dim_customer')")
+                    suggestion="Use format: catalog.schema.table_name (e.g., 'silver.silver.dim_customer')")
 
         if attribute == 'union_tables' and value:
             for table_ref in value.split(','):
@@ -1998,8 +1999,8 @@ def validate_delete_statements(result: ValidationResult, content: str):
     for line_num, line in enumerate(lines, 1):
         line_upper = line.upper().strip()
         
-        # Look for DELETE FROM dbo.Data_Pipeline_* statements
-        if line_upper.startswith('DELETE FROM') and 'DBO.DATA_PIPELINE_' in line_upper:
+        # Look for DELETE FROM [dbo.]Data_Pipeline_* statements (dbo. prefix optional)
+        if line_upper.startswith('DELETE FROM') and 'DATA_PIPELINE_' in line_upper:
             # Check if this line or subsequent lines contain WHERE Table_ID IN (number)
             # That's the WRONG pattern - should use subquery
             
@@ -2017,7 +2018,7 @@ def validate_delete_statements(result: ValidationResult, content: str):
                     result.add_issue('error', 'delete_format',
                         f"DELETE statement uses hardcoded Table_IDs instead of Trigger_Name subquery",
                         line_number=line_num,
-                        suggestion="Use: WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Orchestration WHERE Trigger_Name = 'YourTrigger')")
+                        suggestion="Use: WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Orchestration WHERE Trigger_Name = 'YourTrigger')")
 
 
 def validate_comment_style(result: ValidationResult, content: str):
@@ -2702,24 +2703,24 @@ def validate_delete_presence(result: ValidationResult, content: str):
     """
     content_upper = content.upper()
     
-    has_delete_advanced = bool(re.search(r'DELETE\s+FROM\s+dbo\.Data_Pipeline_\w*Advanced', content, re.IGNORECASE))
-    has_delete_primary = bool(re.search(r'DELETE\s+FROM\s+dbo\.Data_Pipeline_\w*Primary', content, re.IGNORECASE))
-    has_delete_orch = bool(re.search(r'DELETE\s+FROM\s+dbo\.Data_Pipeline_\w*Orchestration', content, re.IGNORECASE))
+    has_delete_advanced = bool(re.search(r'DELETE\s+FROM\s+(?:dbo\.)?Data_Pipeline_\w*Advanced', content, re.IGNORECASE))
+    has_delete_primary = bool(re.search(r'DELETE\s+FROM\s+(?:dbo\.)?Data_Pipeline_\w*Primary', content, re.IGNORECASE))
+    has_delete_orch = bool(re.search(r'DELETE\s+FROM\s+(?:dbo\.)?Data_Pipeline_\w*Orchestration', content, re.IGNORECASE))
     
     if not has_delete_advanced:
         result.add_issue('warning', 'missing_delete',
-            "Missing DELETE FROM dbo.Data_Pipeline_*_Advanced_Config* statement",
-            suggestion="Add DELETE statement for clean re-runs: DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger')")
+            "Missing DELETE FROM Data_Pipeline_*_Advanced_Config* statement",
+            suggestion="Add DELETE statement for clean re-runs: DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger')")
     
     if not has_delete_primary:
         result.add_issue('warning', 'missing_delete',
-            "Missing DELETE FROM dbo.Data_Pipeline_*_Primary_Config* statement",
-            suggestion="Add DELETE statement for clean re-runs: DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger')")
+            "Missing DELETE FROM Data_Pipeline_*_Primary_Config* statement",
+            suggestion="Add DELETE statement for clean re-runs: DELETE FROM Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger')")
     
     if not has_delete_orch:
         result.add_issue('warning', 'missing_delete',
-            "Missing DELETE FROM dbo.Data_Pipeline_*_Orchestration statement",
-            suggestion="Add DELETE statement for clean re-runs: DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger'")
+            "Missing DELETE FROM Data_Pipeline_*_Orchestration statement",
+            suggestion="Add DELETE statement for clean re-runs: DELETE FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTrigger'")
 
 
 # =============================================================================

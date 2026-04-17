@@ -17,7 +17,7 @@ SELECT
     Rows_Quarantined,
     Ingestion_Start_Time,
     Job_Run_URL
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Table_ID = {Table_ID}
 ORDER BY Ingestion_Start_Time DESC;
 ```
@@ -43,7 +43,7 @@ SELECT
     dq.Ingestion_Start_Time,
     dq.Ingestion_End_Time,
     dq.Job_Run_URL
-FROM dbo.Data_Quality_Notifications dq
+FROM Data_Quality_Notifications dq
 WHERE dq.Log_ID = '{Log_ID}'
 ORDER BY dq.Ingestion_End_Time DESC, dq.Ingestion_Start_Time DESC;
 ```
@@ -61,7 +61,7 @@ SELECT
     COUNT(*) AS Occurrence_Count,
     SUM(Rows_Impacted) AS Total_Rows_Impacted,
     SUM(Rows_Quarantined) AS Total_Rows_Quarantined
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Table_ID = {Table_ID}
   AND Date_Key >= {start_date_key}
 GROUP BY Data_Quality_Category, Data_Quality_Result
@@ -79,8 +79,8 @@ SELECT
     SUM(dq.Rows_Quarantined) AS Total_Quarantined,
     SUM(dq.Rows_Impacted) AS Total_Impacted,
     COUNT(*) AS DQ_Notification_Count
-FROM dbo.Data_Quality_Notifications dq
-JOIN dbo.Date_Dimension d ON dq.Date_Key = d.Date_Key
+FROM Data_Quality_Notifications dq
+JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key
 WHERE dq.Table_ID = {Table_ID}
   AND d.[Date] >= DATEADD(DAY, -{days}, GETUTCDATE())
 GROUP BY d.[Date], d.Day_Name
@@ -100,8 +100,8 @@ SELECT TOP 20
     SUM(CASE WHEN dq.Data_Quality_Result = 'Failure' THEN 1 ELSE 0 END) AS Failure_Count,
     SUM(CASE WHEN dq.Data_Quality_Result = 'Warning' THEN 1 ELSE 0 END) AS Warning_Count,
     SUM(dq.Rows_Quarantined) AS Total_Rows_Quarantined
-FROM dbo.Data_Quality_Notifications dq
-JOIN dbo.Date_Dimension d ON dq.Date_Key = d.Date_Key
+FROM Data_Quality_Notifications dq
+JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key
 WHERE d.[Date] >= DATEADD(DAY, -{days}, GETUTCDATE())
 GROUP BY dq.Table_ID, dq.Table_Name, dq.Datastore_Name
 ORDER BY Total_Notifications DESC;
@@ -123,8 +123,8 @@ SELECT
     dq.Rows_Quarantined,
     l.Ingestion_Status,
     l.Records_Processed
-FROM dbo.Data_Quality_Notifications dq
-JOIN dbo.Data_Pipeline_Logs l ON dq.Log_ID = l.Log_ID AND dq.Table_ID = l.Table_ID
+FROM Data_Quality_Notifications dq
+JOIN Data_Pipeline_Logs l ON dq.Log_ID = l.Log_ID AND dq.Table_ID = l.Table_ID
 WHERE dq.Log_ID = '{Log_ID}';
 ```
 > **When to use:** User asks "what DQ results came from this specific run?" Obtain `Log_ID` from `Data_Pipeline_Logs` first.

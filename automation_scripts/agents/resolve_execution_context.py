@@ -16,6 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Resolve the shared execution context for local Databricks workflows.")
     parser.add_argument("--source-directory", type=Path, default=Path("."))
     parser.add_argument("--git-folder-name")
+    parser.add_argument("--environment", default="DEV")
     parser.add_argument("--required-variable", dest="required_variables", action="append", default=[])
     parser.add_argument("--pretty", action="store_true")
     return parser.parse_args()
@@ -29,6 +30,7 @@ def main() -> int:
             source_directory=args.source_directory,
             git_folder_name=args.git_folder_name,
             required_variables=required_variables,
+            environment=args.environment,
         )
     except AgentError as exc:
         print(str(exc), file=sys.stderr)

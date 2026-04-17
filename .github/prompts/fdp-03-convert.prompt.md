@@ -5,7 +5,7 @@ description: "Convert SQL/Python/ETL code into accelerator metadata SQL using me
 
 # Convert Code to Metadata SQL
 
-Convert the following code into metadata SQL for the Fabric Data Platform Accelerator:
+Convert the following code into metadata SQL for the Databricks Data Engineering Accelerator:
 
 {{ legacy_code }}
 

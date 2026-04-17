@@ -305,7 +305,7 @@ The solution deploys modular pipelines that orchestrate metadata-driven data mov
 
 The solution uses a **metadata-driven approach** — all ingestion logic is configured through metadata tables (Orchestration, Primary Config, Advanced Config) rather than hardcoded in pipelines. See [Core Components Reference](CORE_COMPONENTS_REFERENCE.md#data-pipelines-for-data-movement) for execution details and [Data Ingestion Guide](DATA_INGESTION_GUIDE.md) for scenario walkthroughs.
 
-**Flow:** You define data movements in metadata SQL → run `Trigger Step Orchestrator_For_Each_Trigger_Step` with a `Trigger_Name` → the pipeline reads metadata, loops through `Order_Of_Operations` steps sequentially, processes Table_IDs in parallel within each step, extracts/transforms/writes data based on configuration, applies DQ checks, and logs everything to `dbo.Data_Pipeline_Logs`. Merge strategies include append, merge, overwrite, SCD Type 2, and file output.
+**Flow:** You define data movements in metadata SQL → run `Trigger Step Orchestrator_For_Each_Trigger_Step` with a `Trigger_Name` → the pipeline reads metadata, loops through `Order_Of_Operations` steps sequentially, processes Table_IDs in parallel within each step, extracts/transforms/writes data based on configuration, applies DQ checks, and logs everything to `Data_Pipeline_Logs`. Merge strategies include append, merge, overwrite, SCD Type 2, and file output.
 
 ### What notebooks are deployed and what are they used for?
 **Keywords:** notebooks, PySpark, Spark, helper functions, modules, processing notebooks, transformation logic, code, scripts, notebook names, helper functions, batch_processing.py, helper functions, %run magic
@@ -430,7 +430,7 @@ After deploying the solution and configuring metadata, you execute data pipeline
 
 4. **Monitor execution**:
    - View real-time progress in pipeline run history
-   - Check `dbo.Data_Pipeline_Logs` table for detailed logging
+   - Check `Data_Pipeline_Logs` table for detailed logging
    - Use the Data Pipeline Monitoring Power BI report for comprehensive monitoring
 
 **Example Execution**:
@@ -470,7 +470,7 @@ For pipeline parameters and execution options, see [Core Components Reference - 
 
 The solution provides comprehensive traceability through multiple logging mechanisms. See [Monitoring and Logging](MONITORING_AND_LOGGING.md#application-logging-framework) for complete details.
 
-**Logging tables:** `dbo.Data_Pipeline_Logs` (pipeline execution with timestamps, row counts, watermarks, Spark Monitor URLs), `dbo.Activity_Run_Logs` (step-by-step activity messages linked via `Log_ID`, with `Source_Type` to distinguish notebook vs pipeline origin), `dbo.Data_Quality_Notifications` (DQ check results and quarantine counts), `dbo.Schema_Logs` / `dbo.Schema_Changes` (schema evolution tracking). For batch processing, `batch_processing.py` handles all logging internally via pyodbc; for non-batch, `non-framework executor` logs via pipeline Script activities.
+**Logging tables:** `Data_Pipeline_Logs` (pipeline execution with timestamps, row counts, watermarks, Spark Monitor URLs), `Activity_Run_Logs` (step-by-step activity messages linked via `Log_ID`, with `Source_Type` to distinguish notebook vs pipeline origin), `Data_Quality_Notifications` (DQ check results and quarantine counts), `Schema_Logs` / `Schema_Changes` (schema evolution tracking). For batch processing, `batch_processing.py` handles all logging internally via pyodbc; for non-batch, `non-framework executor` logs via pipeline Script activities.
 
 **Additional capabilities:** Metadata validation via `validate_metadata_sql.py` (pre-commit), integration tests in `integration_tests/notebooks/`, EDA profiling via `Exploratory_Data_Analysis`, end-to-end lineage via `generate_lineage.py`, and real-time monitoring via Power BI reports.
 
@@ -483,12 +483,12 @@ The accelerator does not include a custom alerting pipeline. Instead, use two na
 
 1. **Built-in scheduled job failure notifications** (recommended) — the simplest way to get alerted when a pipeline run fails. Configure job failure notifications in your Databricks workspace. Works for pipelines, notebooks, dataflows, and any other schedulable item. Emails include error details and a link to the failed run in Monitoring Hub. See [Get notified when scheduled jobs fail in the workspace](https://blog.fabric.microsoft.com/en-us/blog/get-notified-when-scheduled-jobs-fail-in-fabric-generally-available) for details.
 
-2. **SQL-based alert rules on warehouse queries** — for content-aware alerts driven by your data (e.g., DQ failures, specific error patterns). In the metadata warehouse SQL editor, write a `SELECT` query against `dbo.Data_Pipeline_Logs` (for failures) or `dbo.Data_Quality_Notifications` (for DQ issues), then select **Create rule** from the ribbon. Configure the check frequency, condition, and action (email, Teams message, or trigger a Fabric item). See [Create an alert rule on a Warehouse SQL query](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/data-activator/set-alerts-warehouse-sql-query) for full instructions.
+2. **SQL-based alert rules on warehouse queries** — for content-aware alerts driven by your data (e.g., DQ failures, specific error patterns). In the metadata warehouse SQL editor, write a `SELECT` query against `Data_Pipeline_Logs` (for failures) or `Data_Quality_Notifications` (for DQ issues), then select **Create rule** from the ribbon. Configure the check frequency, condition, and action (email, Teams message, or trigger a Fabric item). See [Create an alert rule on a Warehouse SQL query](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/data-activator/set-alerts-warehouse-sql-query) for full instructions.
 
    **Example — alert on pipeline failures today:**
    ```sql
    SELECT Trigger_Name, Table_ID, Ingestion_End_Time, Spark_Monitor_URL
-   FROM   dbo.Data_Pipeline_Logs
+   FROM   Data_Pipeline_Logs
    WHERE  Ingestion_Status = 'Failed'
    AND    CAST(Ingestion_End_Time AS DATE) = CAST(GETDATE() AS DATE)
    ```
@@ -496,7 +496,7 @@ The accelerator does not include a custom alerting pipeline. Instead, use two na
    **Example — alert on data quality failures today:**
    ```sql
    SELECT Datastore_Name, Table_Name, Data_Quality_Category, Data_Quality_Message
-   FROM   dbo.Data_Quality_Notifications
+   FROM   Data_Quality_Notifications
    WHERE  Data_Quality_Result != 'Pass'
    AND    CAST(Ingestion_End_Time AS DATE) = CAST(GETDATE() AS DATE)
    ```
@@ -738,21 +738,21 @@ Metadata SQL notebooks follow a strict 5-section structure to ensure consistency
 -- =====================================================================
 
 -- STEP 1: DELETE existing metadata
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesDataProduct');
-DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesDataProduct');
-DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesDataProduct');
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'SalesDataProduct');
+DELETE FROM Data_Pipeline_Metadata_Orchestration
 WHERE Trigger_Name = 'SalesDataProduct';
 
 -- STEP 2: Orchestration Metadata
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration (...)
+INSERT INTO Data_Pipeline_Metadata_Orchestration (...)
 VALUES
 ('SalesDataProduct', 1, 101, 'bronze', 'dbo.sales', 'sale_id', 'pipeline_stage_and_batch', 1),
 ('SalesDataProduct', 2, 102, 'silver', 'dbo.sales_clean', 'sale_id', 'batch', 1);
 
 -- STEP 3: Primary Configuration
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (...)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (...)
 VALUES
 (101, 'source_details', 'source', 'oracle'),
 (101, 'source_details', 'datastore_name', 'oracle_sales'),
@@ -761,7 +761,7 @@ VALUES
 (102, 'target_details', 'merge_type', 'merge');
 
 -- STEP 4: Advanced Configuration (if needed)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (...)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (...)
 VALUES
 (102, 'data_transformation_steps', 'derived_column', 1, 'column_name', 'total_amount'),
 (102, 'data_quality', 'validate_condition', 1, 'condition', 'amount > 0'),
@@ -1285,7 +1285,7 @@ Add a single row to `Data_Pipeline_Metadata_Primary_Configuration` for each tabl
 ```sql
 -- Only Table_ID 100 and 101 will use the geocoding environment
 -- All other tables continue using the workspace default (ENV_Default)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 (100, 'other_settings', 'spark_environment_id', '<your-environment-guid>'),
@@ -1556,7 +1556,7 @@ Use the `/fdp-06-investigate` prompt command in Copilot Chat. This activates the
 1. **Check cached EDA profiling first** — if the `Exploratory_Data_Analysis_Results` table has data profiled within the last 24 hours, Copilot uses that instead of running a live query
 2. **Run live SQL queries** against your actual table data via the SQL Analytics endpoint registered in `Datastore_Configuration`
 
-> **🔴 CRITICAL:** Do not hardcode database names such as `silver`, `gold`, `bronze`, or `Metadata`. Copilot must resolve the live database name dynamically from `dbo.Datastore_Configuration.Datastore_Name` for the selected environment. The metadata warehouse is only for resolving config/logs and discovering the target endpoint/database.
+> **🔴 CRITICAL:** Do not hardcode database names such as `silver`, `gold`, `bronze`, or `Metadata`. Copilot must resolve the live database name dynamically from `Datastore_Configuration.Datastore_Name` for the selected environment. The metadata warehouse is only for resolving config/logs and discovering the target endpoint/database.
 
 **Available investigation modes:**
 
@@ -1645,8 +1645,8 @@ For comprehensive logging and monitoring, follow these best practices from [Runt
 
 **Monitoring Approach:**
 - **Application Logs**: Detailed step-by-step processing information for debugging (notebook outputs)
-- **Pipeline Logs**: High-level processing metrics and status for monitoring dashboards (`dbo.Data_Pipeline_Logs`)
-- **Data Quality Logs**: Specific data quality violations and remediation actions (`dbo.Data_Quality_Notifications`)
+- **Pipeline Logs**: High-level processing metrics and status for monitoring dashboards (`Data_Pipeline_Logs`)
+- **Data Quality Logs**: Specific data quality violations and remediation actions (`Data_Quality_Notifications`)
 
 **Example Logging Pattern:**
 ```python
@@ -2015,7 +2015,7 @@ This keeps metadata/watermark routing stable because `source_details.source` sta
 
 **Option A example (CAST in query):**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
    (101, 'source_details', 'source', 'oracle'),
@@ -2027,7 +2027,7 @@ VALUES
 
 **Option B example (CSV staging fallback):**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
    (101, 'source_details', 'source', 'oracle'),
@@ -2271,7 +2271,7 @@ The notebooks add lineage columns so you do not have to model them in metadata:
 - **`delta__created_datetime`** – `helper_functions_1.py.sqladd_timestamp_metadata_columns` adds this timestamp the first time a row lands in a catalog/warehouse table. It is persisted for Bronze, Silver, and Gold loads so you always know when the row was originally ingested.
 - **`delta__modified_datetime`** – The same helper now stamps this column for **every** medallion layer. It records the time of the current write operation and is recalculated on every write so you can trace the latest successful merge even in Bronze tables.
 - **`delta__raw_folderpath`** – File ingestion helpers in `helper_functions_2.py.sql` attach the originating file path to every record (via `input_file_name()` for bulk reads or a literal path when staging data). This value travels with the row into Bronze/Silver tables, making it easy to trace a record back to the physical file that produced it.
-- **`delta__schema_id`** – When data is written to Bronze or Silver tables, `finalize_processing` in `helper_functions_1.py.sql` stamps the schema hash into this column. The value ties each batch to the snapshot stored in `dbo.Schema_Logs`, so schema drift investigations can be correlated with specific records.
+- **`delta__schema_id`** – When data is written to Bronze or Silver tables, `finalize_processing` in `helper_functions_1.py.sql` stamps the schema hash into this column. The value ties each batch to the snapshot stored in `Schema_Logs`, so schema drift investigations can be correlated with specific records.
 
 ### What built-in transformations are available?
 **Keywords:** transformations, built-in transformations, data transformation steps, derived_column, filter_data, join_data, aggregate_data, pivot, unpivot, window function, rename columns, transformation list
@@ -2315,7 +2315,7 @@ The accelerator provides 30 built-in transformations configured via `data_transf
 
 **Example - Multi-Step Transformation:**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
 -- Step 1: Rename columns
@@ -2360,7 +2360,7 @@ Use `derived_column` for time zone-aware conversion. Do **not** rely on `data_cl
 - **Source value is local wall-clock time in a known zone; normalize to UTC**
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
    (101, 'data_transformation_steps', 'derived_column', 4, 'column_name', 'created_utc'),
@@ -2370,7 +2370,7 @@ VALUES
 - **Source value is already UTC; create a reporting-zone column**
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
    (101, 'data_transformation_steps', 'derived_column', 5, 'column_name', 'created_pacific'),
@@ -2417,7 +2417,7 @@ You must explicitly configure any cleansing behavior you want:
 
 **Example - Custom Column Cleansing:**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 -- Override defaults for a table source
@@ -2524,7 +2524,7 @@ The solution automatically validates **primary keys for uniqueness** on every pi
 - ✅ **Primary Key Validation** - Primary key uniqueness is validated for every Table_ID that has `Primary_Keys` configured
 - ✅ **Corrupt Record Detection** - Records that don't conform to the schema are identified and quarantined
 - ✅ **Schema Contract Validation** - When a `schema` is defined in `source_details`, the pipeline validates that the source DataFrame has the expected columns and data types before writing. Mismatches fail the pipeline explicitly (via `validate_table_schema_contract`)
-- ✅ **Schema Change Detection** - After every write, the framework automatically detects added/removed/changed columns vs. the previously logged schema and records changes in `dbo.Schema_Logs` and `dbo.Schema_Changes`
+- ✅ **Schema Change Detection** - After every write, the framework automatically detects added/removed/changed columns vs. the previously logged schema and records changes in `Schema_Logs` and `Schema_Changes`
 - ✅ **Schema Drift Enforcement** - Set `fail_on_new_schema = 'true'` in `source_details` to fail the pipeline if the source schema has changed since the last run
 - ✅ **Configurable action** - Control how violations are handled: `warn` (log warning), `quarantine` (isolate records), or `fail` (stop pipeline)
 - ✅ **Includes composite keys** - Supports multi-column primary keys automatically
@@ -2550,11 +2550,11 @@ See [Runtime and Workflows Guide - Transform data with filters and data quality 
 **Example Primary Key Validation in Action:**
 ```sql
 -- This metadata ALWAYS validates that order_id is unique
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
+INSERT INTO Data_Pipeline_Metadata_Orchestration (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES ('OrdersETL', 1, 101, 'silver', 'dbo.orders', 'order_id', 'batch', 1);
 
 -- Configure how to handle duplicates
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES (101, 'target_details', 'if_duplicate_primary_keys', 'quarantine');
 -- If duplicate order_ids found, they will be quarantined and logged
 ```
@@ -2599,7 +2599,7 @@ Every data quality check has an `if_not_compliant` attribute that controls what 
 
 **Configuration Example:**
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
 -- Critical: Fail if amounts are negative (should never happen)
@@ -2622,7 +2622,7 @@ VALUES
 ```
 
 **Viewing Results:**
-- **Warnings**: Query `dbo.Data_Quality_Notifications` in Metadata Warehouse
+- **Warnings**: Query `Data_Quality_Notifications` in Metadata Warehouse
 - **Quarantined records**: Query `{target_table}_quarantined` table (includes `delta__quarantine_reason` column)
 - **Row-level DQ details**: `delta__dq_failure_details` is populated only for checks configured with `if_not_compliant = 'mark'`
 - **Failures**: Pipeline stops with error message in the workspace run history
@@ -2815,7 +2815,7 @@ The accelerator applies Microsoft-proprietary Spark optimizations to Delta table
 
 **Also answers:** Can I write to more than one warehouse? How do I set up additional warehouse targets? How do I configure multiple warehouse destinations?
 
-Yes - adding new target datastores or warehouses is simple. Just add a record to the `dbo.Datastore_Configuration` table in your environment's datastore notebook. See [How do I add a new catalog or warehouse as a target datastore?](#how-do-i-add-a-new-catalog-or-warehouse-as-a-target-datastore) for the setup steps.
+Yes - adding new target datastores or warehouses is simple. Just add a record to the `Datastore_Configuration` table in your environment's datastore notebook. See [How do I add a new catalog or warehouse as a target datastore?](#how-do-i-add-a-new-catalog-or-warehouse-as-a-target-datastore) for the setup steps.
 
 For warehouses specifically, also review [the warehouse implications](#were-thinking-about-using-a-warehouse-for-gold-instead-of-catalog---anything-we-should-know) - you'll need stored procedures for any tables that require merge/upsert.
 
@@ -2890,7 +2890,7 @@ See [Data Ingestion Guide - Advanced Topics](DATA_INGESTION_GUIDE.md#advanced-to
 3. **Configure metadata** to use partitioning:
 
 ```sql
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'partitioning_option', 'DynamicRange'),
     (1, 'source_details', 'partition_column_name', 'ORDER_ID'),
@@ -2971,7 +2971,7 @@ For the full guide including decision trees, worked examples, and FIFO lock clea
 
 Check these locations in order:
 1. **Pipeline Run History**: Open the pipeline and view run details
-2. **Metadata Warehouse Logs**: Query `dbo.Data_Pipeline_Logs` table for error messages
+2. **Metadata Warehouse Logs**: Query `Data_Pipeline_Logs` table for error messages
 3. **Notebook Output**: If a notebook failed, check the notebook run output in the workspace
 4. **Pre-built Report**: Use the Data Movement monitoring report to view all pipeline executions and errors
 
@@ -3032,7 +3032,7 @@ Quarantined records are rows that failed data quality checks but didn't stop the
 **Also answers:** Why is my pipeline failing on schema? How do I handle new columns? How do I enable schema evolution? What do I do when source schema changes?
 
 When source schema changes:
-1. **Review**: Check `dbo.Schema_Logs` table in Metadata Warehouse for detected schema changes, or review schema evolution in the Exploratory Data Analysis report
+1. **Review**: Check `Schema_Logs` table in Metadata Warehouse for detected schema changes, or review schema evolution in the Exploratory Data Analysis report
 2. **Option 1 - Allow changes**: Set `fail_on_new_schema = 'false'` in `target_details` to automatically evolve schema
 3. **Option 2 - Manual fix**: Update source query or file schema definition to match expected schema
 4. **Option 3 - Reload**: Trigger a full reload to rebuild the target table with new schema
@@ -3155,12 +3155,12 @@ FIFO (First In, First Out) is a **concurrency guard** that prevents overlapping 
 EXEC dbo.FIFO_Status @table_id = 101, @target_datastore = 'bronze'
 ```
 
-> If you see FIFO errors in your logs, it means another pipeline run for the same Table_ID was still in progress or had failed within the last 24 hours. Wait for the other run to complete, or check `dbo.Data_Pipeline_Logs` for stuck/failed runs.
+> If you see FIFO errors in your logs, it means another pipeline run for the same Table_ID was still in progress or had failed within the last 24 hours. Wait for the other run to complete, or check `Data_Pipeline_Logs` for stuck/failed runs.
 
 ### How do I know if my data quality checks are working?
 **Keywords:** verify DQ, test data quality, check validation, DQ testing, validation testing, quality check status
 
-1. **Check logs**: Query `dbo.Data_Quality_Notifications` table for data quality notifications
+1. **Check logs**: Query `Data_Quality_Notifications` table for data quality notifications
 2. **Review quarantine tables**: Check if records are being quarantined as expected
 3. **Monitor report**: Use the Data Movement pre-built report to see DQ check results
 4. **Test with bad data**: Intentionally introduce non-compliant data to verify checks trigger
@@ -3200,7 +3200,7 @@ All logging tables are stored in the **Metadata Warehouse** deployed with the so
 
 **Key Logging Tables:**
 
-1. **`dbo.Data_Pipeline_Logs`** - Pipeline execution logs
+1. **`Data_Pipeline_Logs`** - Pipeline execution logs
    - Tracks every data movement from start to finish
    - Contains Table_ID, source details, target details, start/end times
    - Shows ingestion status (Started/Processed/Failed)
@@ -3208,14 +3208,14 @@ All logging tables are stored in the **Metadata Warehouse** deployed with the so
    - Includes Spark Monitor URLs for pipeline run details
    - Key columns: `Log_ID`, `Ingestion_Status`
 
-2. **`dbo.Activity_Run_Logs`** - Structured activity execution logs
+2. **`Activity_Run_Logs`** - Structured activity execution logs
    - Stores sequenced messages for notebook-based and pipeline-based runs
    - Includes `Table_ID`, timestamp, level, step name, step number, message text, and `Source_Type` (`Notebook`, `Pipeline`). Step number maps to the notebook cell number for notebook logs and is always `1` for pipeline-originated entries
-   - Uses the same `Log_ID` as `dbo.Data_Pipeline_Logs` for correlation; `Table_ID` enables independent lookup when `Data_Pipeline_Logs` has no matching row
+   - Uses the same `Log_ID` as `Data_Pipeline_Logs` for correlation; `Table_ID` enables independent lookup when `Data_Pipeline_Logs` has no matching row
    - Most useful when debugging `batch_processing.py` beyond the high-level pipeline status rows, or reviewing pipeline error messages
    - Key columns: `Table_ID`, `Log_ID`, `Sequence_Number`, `Step_Name`, `Message`, `Source_Type`
 
-3. **`dbo.Data_Quality_Notifications`** - Data quality check results
+3. **`Data_Quality_Notifications`** - Data quality check results
    - Logs all data quality warnings and failures
    - Contains data quality category, result type (Warning/Failure)
    - Shows detailed messages about violations
@@ -3223,7 +3223,7 @@ All logging tables are stored in the **Metadata Warehouse** deployed with the so
    - Links to Log_ID for correlation with pipeline runs
    - Key columns: `Log_ID`, `Data_Quality_Message`
 
-4. **`dbo.Schema_Logs`** - Schema change tracking
+4. **`Schema_Logs`** - Schema change tracking
    - Stores unique schemas for all delta tables
    - Contains Table_ID, table name, and schema ID (MD5 hash)
    - Tracks schema evolution over time
@@ -3237,32 +3237,32 @@ All logging tables are stored in the **Metadata Warehouse** deployed with the so
 ```sql
 -- View recent pipeline executions
 SELECT TOP 100 *
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 ORDER BY Ingestion_Start_Time DESC;
 
 -- Check for failed pipeline runs
 SELECT *
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Ingestion_Status = 'Failed'
 ORDER BY Ingestion_Start_Time DESC;
 
 -- Inspect structured activity messages for a specific run
 SELECT l.Log_ID, l.Ingestion_Status, n.Table_ID, n.Sequence_Number, n.Step_Name, n.Log_Level, n.Message
-FROM dbo.Data_Pipeline_Logs l
-JOIN dbo.Activity_Run_Logs n
+FROM Data_Pipeline_Logs l
+JOIN Activity_Run_Logs n
    ON l.Log_ID = n.Log_ID
 WHERE l.Log_ID = '<log_id>'
 ORDER BY n.Sequence_Number;
 
 -- Review data quality issues
 SELECT *
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Data_Quality_Result = 'Failure'
 ORDER BY Log_ID DESC;
 
 -- Track schema changes for a specific table
 SELECT *
-FROM dbo.Schema_Logs
+FROM Schema_Logs
 WHERE Table_Name = 'silver.dbo.customers'
 ORDER BY Schema_ID;
 ```
@@ -3272,7 +3272,7 @@ For detailed logging table schemas and additional monitoring capabilities, see [
 ### How do I write data to a different workspace?
 **Keywords:** different workspace, cross-workspace write, write to another workspace, target different workspace, multi-workspace
 
-Add the target datastore to the `dbo.Datastore_Configuration` table in your environment's datastore notebook. See [How do I add a new catalog or warehouse as a target datastore?](#how-do-i-add-a-new-catalog-or-warehouse-as-a-target-datastore) for configuration steps.
+Add the target datastore to the `Datastore_Configuration` table in your environment's datastore notebook. See [How do I add a new catalog or warehouse as a target datastore?](#how-do-i-add-a-new-catalog-or-warehouse-as-a-target-datastore) for configuration steps.
 
 ### Why is delta__created_datetime or delta__modified_datetime missing from my target table?
 **Keywords:** missing timestamp, delta__created_datetime missing, delta__modified_datetime missing, system columns missing, metadata columns not appearing, timestamp not in output, join lost columns, aggregate lost timestamp, delta__raw_folderpath, delta__schema_id
@@ -3553,7 +3553,7 @@ Check the following:
 
 Use the **Data Pipeline Monitoring Report**:
 1. Navigate to the "Data Quality" page/view
-2. Review the `dbo.Data_Quality_Notifications` table data which shows:
+2. Review the `Data_Quality_Notifications` table data which shows:
    - Number of records quarantined per Table_ID
    - Types of validation failures (pattern match, foreign key, filters)
    - Quarantine trends over time

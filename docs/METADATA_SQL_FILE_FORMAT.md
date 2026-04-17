@@ -31,25 +31,42 @@
 
 When generating metadata records, always create a new `.sql` file with the following structure:
 
+### Table naming — use UNQUALIFIED names
+
+> **Rule:** Metadata tables in your `.sql` files are referenced by **bare table name only** — no `dbo.`, no `<catalog>.<schema>.` prefix.
+>
+> **Why:** `commit_pipeline.py` issues `USE CATALOG`/`USE SCHEMA` on the SQL warehouse session from `databricks_batch_engine/datastores/datastore_<ENV>.json` (`metadata.catalog` / `metadata.schema`) **before** executing each metadata SQL file. Bare names resolve automatically against those values, so the same file deploys correctly to every environment.
+
+```sql
+-- ✅ CORRECT - bare table name, environment-portable
+INSERT INTO Data_Pipeline_Metadata_Orchestration ( ... ) VALUES ( ... );
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'MyTrigger');
+
+-- ❌ WRONG - hardcoded schema; breaks across environments
+INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ( ... ) VALUES ( ... );
+```
+
+The same principle applies to `Target_Entity` on orchestration rows: use the **bare table name** (e.g. `housing_price`). The framework qualifies it at runtime as `<catalog>.<schema>.<table>` from the `Datastore_Configuration` row matching `Target_Datastore`. A 2-part (`schema.table`) or 3-part (`catalog.schema.table`) form is also accepted if you need to override.
+
 ### File Location
 **CRITICAL**: All metadata SQL files MUST be created as **plain `.sql` files** in the **metadata folder**.
 
 **⚠️ Each trigger gets its own `.sql` file.** This is the standard format for metadata files.
 
 **Finding the Metadata Folder:**
-1. **First**: Search for a folder matching the pattern `**/metadata/*.sql` in the workspace
-2. **If not found**: Create the `metadata/` folder in your workspace git folder (e.g., `<git_folder>/metadata/`)
-3. **Never guess** - Always verify the folder exists before file creation
+1. **First**: Search for a folder matching the pattern `**/metadata/*.sql` in the workspace.
+2. **If not found**: Create the `metadata/` folder inside the batch engine folder — the folder that already contains `datastores/` and `custom_functions/` (in this repo, `databricks_batch_engine/metadata/`). Set `FDP_BATCH_ENGINE_FOLDER` if you have multiple engine folders.
+3. **Never guess** — always verify the folder exists before file creation.
 
 **Common folder patterns to search for:**
-- `<git_folder>/metadata/`
-- `<workspace_git_folder>/metadata/`
-- Any folder named `metadata` containing `.sql` files
+- `<engine_folder>/metadata/` (e.g. `databricks_batch_engine/metadata/`)
+- Any folder named `metadata` that sits alongside `datastores/` and `custom_functions/` and contains `.sql` files.
 
 **✅ CORRECT - Flat file structure:**
-    - `<git_folder>/metadata/metadata_SalesDataProduct.sql`
-    - `<git_folder>/metadata/metadata_OracleSales.sql`
-    - `<git_folder>/metadata/metadata_CustomerDimensions.sql`
+    - `<engine_folder>/metadata/metadata_SalesDataProduct.sql`
+    - `<engine_folder>/metadata/metadata_OracleSales.sql`
+    - `<engine_folder>/metadata/metadata_CustomerDimensions.sql`
 
 ### File Naming Convention
 **Organize by Trigger Name** - Each trigger gets its own SQL file:
@@ -112,11 +129,11 @@ Every SQL file should start with a header comment block:
 **DELETE Statement Pattern (ALWAYS use this exact pattern):**
 ```sql
 -- ❌ WRONG - Never hardcode Table_IDs
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (101, 102, 103);
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (101, 102, 103);
 
 -- ✅ CORRECT - Always use Trigger_Name with subquery
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
 ```
 
 **Why This Matters:**
@@ -129,13 +146,13 @@ WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration
 **Correct DELETE Statement Order:**
 ```sql
 -- Delete in reverse dependency order (Advanced → Primary → Orchestration)
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
 
-DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration
-WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration
+WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'YourTriggerName');
 
-DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration
+DELETE FROM Data_Pipeline_Metadata_Orchestration
 WHERE Trigger_Name = 'YourTriggerName';
 ```
 
@@ -152,7 +169,7 @@ WHERE Trigger_Name = 'YourTriggerName';
 **✅ CORRECT - Each row on single line, multiple Table_IDs grouped:**
 ```sql
 -- pipeline_stage_and_batch for external sources (Oracle), process for Delta tables (Silver)
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
 ('OracleSales', 1, 101, 'bronze', 'dbo.sales', 'sale_id', 'pipeline_stage_and_batch', 1),
 ('OracleSales', 2, 102, 'bronze', 'dbo.customers', 'customer_id', 'pipeline_stage_and_batch', 1),
@@ -172,7 +189,7 @@ VALUES (
 **✅ CORRECT - Split when exceeding 1000 records:**
 ```sql
 -- First batch (records 1-1000)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 (101, 'source_details', 'source', 'oracle'),
 (101, 'source_details', 'datastore_name', 'oracle_sales'),
@@ -180,7 +197,7 @@ VALUES
 (150, 'target_details', 'merge_type', 'merge');
 
 -- Second batch (records 1001+)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 (151, 'source_details', 'source', 'sql_server'),
 -- ... remaining rows ...
@@ -199,7 +216,7 @@ VALUES
 >
 > **Why?** Multi-line comments (`/* */`) violate repository standards and can break CI/CD parsing, diff tracking, and automated metadata processing tools.
 
-**File Location**: `<git_folder>/metadata/metadata_OracleSales.sql`
+**File Location**: `<engine_folder>/metadata/metadata_OracleSales.sql`
 
 ```sql
 -- =====================================================================
@@ -234,16 +251,16 @@ VALUES
 -- STEP 1: DELETE existing records for this trigger
 -- =====================================================================
 -- Remove all existing metadata for 'OracleSales' trigger to allow clean re-deployment
-DELETE FROM dbo.Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales');
-DELETE FROM dbo.Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales');
-DELETE FROM dbo.Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales';
+DELETE FROM Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales');
+DELETE FROM Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales');
+DELETE FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'OracleSales';
 
 -- =====================================================================
 -- STEP 2: Orchestration Metadata (Multiple Table_IDs)
 -- =====================================================================
 -- Each VALUES row MUST be on a single line for CI/CD diff tracking
 -- pipeline_stage_and_batch for external sources (Oracle), process for Delta table sources (Silver reads from Bronze)
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
 ('OracleSales', 1, 101, 'bronze', 'dbo.sales', 'sale_id', 'pipeline_stage_and_batch', 1),
 ('OracleSales', 1, 102, 'bronze', 'dbo.customers', 'customer_id', 'pipeline_stage_and_batch', 1),
@@ -252,7 +269,7 @@ VALUES
 -- =====================================================================
 -- STEP 3: Primary Configuration (All Table_IDs grouped together)
 -- =====================================================================
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 -- Table_ID 101: Oracle SALES table with incremental loading
 (101, 'source_details', 'source', 'oracle'),
@@ -283,7 +300,7 @@ VALUES
 -- STEP 4: Advanced Configuration (Data Quality & Transformations)
 -- =====================================================================
 -- Table_ID 103: Transformations and data quality checks
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
 -- Rename columns
 (103, 'data_transformation_steps', 'columns_to_rename', 1, 'existing_column_name', 'cust_id,prod_id'),
@@ -313,7 +330,7 @@ VALUES
 
    **Example (CORRECT) - Group by Table_ID, then by category within each Table_ID:**
    ```sql
-   INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (
+   INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (
        Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value
    )
    VALUES
@@ -330,7 +347,7 @@ VALUES
    **Example (INCORRECT) - Table_IDs scattered or categories intermixed within Table_ID:**
    ```sql
    -- WRONG: Table_ID 102 transformation appears after Table_ID 101 DQ
-   INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (...)
+   INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (...)
    VALUES
        (101, 'data_transformation_steps', 'select_columns', 1, 'column_name', 'sale_id'),
        (102, 'data_transformation_steps', 'select_columns', 1, 'column_name', 'customer_id'),  -- ❌ Table_ID 102 before 101 is complete
@@ -409,7 +426,7 @@ INSERT INTO Primary_Configuration VALUES
 
 **✅ CORRECT Process:**
 1. Read the entire file to locate the Advanced Configuration section
-2. Find the existing `INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration` statement
+2. Find the existing `INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration` statement
 3. **Replace the semicolon on the last existing row with a comma** (`,`)
 4. Add new rows to the VALUES clause of that existing INSERT
 5. End the new last row with a semicolon (`;`)
@@ -425,7 +442,7 @@ INSERT INTO Primary_Configuration VALUES
 --                                                                          LAST ROW ENDS WITH SEMICOLON
 
 -- AFTER EDIT (comma added to last row, new rows added):
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (103, 'data_transformation_steps', 'columns_to_rename', 1, 'existing_column_name', 'cust_id'),
     (103, 'data_transformation_steps', 'columns_to_rename', 1, 'new_column_name', 'customer_id'),
@@ -438,7 +455,7 @@ VALUES
 **❌ INCORRECT Process - DO NOT DO THIS:**
 ```sql
 -- WRONG: Creating a separate INSERT statement
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration (...)
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration (...)
 VALUES
     (103, 'data_transformation_steps', 'filter_data', 2, 'filter_logic', 'NOT (customer_id LIKE ''1%'')');
 ```

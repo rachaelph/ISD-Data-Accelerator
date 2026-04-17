@@ -4,7 +4,7 @@
 
 ## Important Logging Model
 
-- A logical pipeline execution can produce a `Staging` row, a `Batch` row, or both in `dbo.Data_Pipeline_Logs`.
+- A logical pipeline execution can produce a `Staging` row, a `Batch` row, or both in `Data_Pipeline_Logs`.
 - When both exist, they share the same `Log_ID` and represent separate processing phases of the same execution.
 - Treat the log-row identity as the composite of `Log_ID`, `Processing_Phase`, and `Ingestion_Status`.
 - Choose the phase intentionally: inspect all available phases for end-to-end troubleshooting, `Staging` for landing/extract behavior, and `Batch` for the terminal publish/merge outcome.
@@ -29,7 +29,7 @@ SELECT
     Ingestion_End_Time,
     DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds,
     Job_Run_URL
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Trigger_Execution_ID = '{Trigger_Execution_ID}'
   AND ({Table_ID} IS NULL OR Table_ID = {Table_ID})
 ORDER BY Ingestion_End_Time DESC, Ingestion_Start_Time DESC;
@@ -46,7 +46,7 @@ WITH latest_runs AS (
   SELECT TOP ({N})
     Log_ID,
     MAX(Ingestion_End_Time) AS Run_End_Time
-  FROM dbo.Data_Pipeline_Logs
+  FROM Data_Pipeline_Logs
   WHERE Table_ID = {Table_ID}
   GROUP BY Log_ID
   ORDER BY MAX(Ingestion_End_Time) DESC
@@ -65,7 +65,7 @@ SELECT
   DATEDIFF(SECOND, MIN(l.Ingestion_Start_Time), MAX(l.Ingestion_End_Time)) AS Duration_Seconds,
   MAX(CASE WHEN l.Processing_Phase = 'Batch' THEN l.Watermark_Value END) AS Batch_Watermark_Value,
   MAX(CASE WHEN l.Processing_Phase = 'Batch' THEN l.Job_Run_URL END) AS Job_Run_URL
-FROM dbo.Data_Pipeline_Logs l
+FROM Data_Pipeline_Logs l
 JOIN latest_runs r ON l.Log_ID = r.Log_ID
 GROUP BY l.Log_ID, l.Table_ID, r.Run_End_Time
 ORDER BY r.Run_End_Time DESC;
@@ -90,7 +90,7 @@ SELECT
     l.Ingestion_Start_Time,
     l.Ingestion_End_Time,
     l.Job_Run_URL
-FROM dbo.Data_Pipeline_Logs l
+FROM Data_Pipeline_Logs l
 WHERE l.Ingestion_Status = 'Failed'
   AND l.Ingestion_Start_Time >= DATEADD(HOUR, -{hours}, GETUTCDATE())
 ORDER BY l.Ingestion_Start_Time DESC;
@@ -114,7 +114,7 @@ SELECT
     MIN(DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Min_Duration_Seconds,
     MAX(DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Max_Duration_Seconds,
     AVG(Records_Processed) AS Avg_Records_Processed
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Table_ID = {Table_ID}
   AND Ingestion_Status = 'Processed'
   AND Ingestion_Start_Time >= DATEADD(DAY, -{days}, GETUTCDATE())
@@ -135,8 +135,8 @@ SELECT
     SUM(l.Records_Processed) AS Total_Records,
     SUM(l.Quarantined_Records) AS Total_Quarantined,
     COUNT(*) AS Run_Count
-FROM dbo.Data_Pipeline_Logs l
-JOIN dbo.Date_Dimension d ON l.Date_Key = d.Date_Key
+FROM Data_Pipeline_Logs l
+JOIN Date_Dimension d ON l.Date_Key = d.Date_Key
 WHERE l.Table_ID = {Table_ID}
   AND l.Ingestion_Status = 'Processed'
   AND d.[Date] >= DATEADD(DAY, -{days}, GETUTCDATE())
@@ -157,7 +157,7 @@ SELECT TOP {N}
     Ingestion_Status,
     Watermark_Value,
     Records_Processed
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Table_ID = {Table_ID}
   AND Watermark_Value IS NOT NULL
   AND Processing_Phase = 'Batch'
@@ -178,7 +178,7 @@ SELECT
     SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) AS Failed_Runs,
     SUM(CASE WHEN Ingestion_Status = 'Processed' THEN 1 ELSE 0 END) AS Successful_Runs,
     CAST(SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS Failure_Rate_Pct
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Ingestion_Start_Time >= DATEADD(DAY, -{days}, GETUTCDATE())
 GROUP BY Trigger_Name, Processing_Phase
 ORDER BY Failure_Rate_Pct DESC, Trigger_Name, Processing_Phase;
@@ -200,7 +200,7 @@ SELECT
     Ingestion_Start_Time,
     DATEDIFF(MINUTE, Ingestion_Start_Time, GETUTCDATE()) AS Minutes_Elapsed,
     Job_Run_URL
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Ingestion_Status = 'Started'
   AND Ingestion_Start_Time >= DATEADD(HOUR, -24, GETUTCDATE())
 ORDER BY Ingestion_Start_Time ASC;
@@ -223,7 +223,7 @@ SELECT
     Step_Name,
     Step_Number,
     Message
-FROM dbo.Activity_Run_Logs
+FROM Activity_Run_Logs
 WHERE Log_ID = '{Log_ID}'
 ORDER BY Sequence_Number ASC;
 ```

@@ -53,6 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Execute a Databricks job or notebook run using merged workspace config values.")
     parser.add_argument("--source-directory", type=Path, default=Path("."))
     parser.add_argument("--git-folder-name")
+    parser.add_argument("--environment", default="DEV")
     parser.add_argument("--table-id", type=int, default=0)
     parser.add_argument("--trigger-name")
     parser.add_argument("--table-ids")

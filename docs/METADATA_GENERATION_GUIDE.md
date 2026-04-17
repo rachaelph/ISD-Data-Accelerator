@@ -205,13 +205,13 @@ The complete and authoritative list of all valid configuration categories, confi
 
 The Databricks Data Platform uses three core metadata tables to configure data pipelines:
 
-1. **Orchestration Metadata Table** (`dbo.Data_Pipeline_Metadata_Orchestration`)
+1. **Orchestration Metadata Table** (`Data_Pipeline_Metadata_Orchestration`)
    - Defines **what** tables/entities to process, in **what order**, and **where** to write them
 
-2. **Primary Configuration Table** (`dbo.Data_Pipeline_Metadata_Primary_Configuration`)
+2. **Primary Configuration Table** (`Data_Pipeline_Metadata_Primary_Configuration`)
    - Contains core configurations for each Table_ID: source details, target details, watermark settings, performance settings
 
-3. **Advanced Configuration Table** (`dbo.Data_Pipeline_Metadata_Advanced_Configuration`)
+3. **Advanced Configuration Table** (`Data_Pipeline_Metadata_Advanced_Configuration`)
    - Stores complex multi-row configurations for transformations, data quality checks, and surrogate key logic
 
 ## Core Principles for LLM Metadata Generation
@@ -370,10 +370,10 @@ For detailed walkthroughs with SQL examples, see:
 ### Pattern 1: Oracle Database → Bronze (Incremental with Watermark)
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('OracleSales', 1, 101, 'bronze', 'dbo.sales', 'sale_id', 'pipeline_stage_and_batch', 1);
 -- Primary Config with watermark
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (101, 'source_details', 'source', 'oracle'),
@@ -392,10 +392,10 @@ VALUES
 ### Pattern 2: CSV Files → Silver (with cleansing)
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES ('CSVSales', 1, 102, 'silver', 'dbo.sales', 'sale_id', 'batch', 1);
 -- Primary Config
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Source: CSV files from UC Volumes (can be uploaded or via shortcut)
@@ -416,13 +416,13 @@ VALUES
 ### Pattern 3: Bronze → Silver (with transformations and DQ)
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('SalesTransform', 1, 103, 'silver', 'dbo.sales_clean', 'sale_id', 'batch', 1);
 
 -- Primary Config
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Source: Bronze delta table
@@ -431,7 +431,7 @@ VALUES
     (103, 'target_details', 'merge_type', 'merge');
 
 -- Advanced Config: Transformations AND Data Quality (all in one INSERT per Table_ID)
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- TRANSFORMATIONS
@@ -460,13 +460,13 @@ VALUES
 ### Pattern 4: Silver → Gold (Fact Tables & Snowflake Dimensions with Surrogate Keys)
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('SalesFact', 1, 104, 'gold', 'dbo.fact_sales', 'sale_id', 'batch', 1);
 
 -- Primary Config
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (104, 'source_details', 'table_name', 'silver.dbo.sales_clean'),
@@ -474,7 +474,7 @@ VALUES
     (104, 'target_details', 'liquid_clustering_columns', 'customer_sk,product_sk,date_sk');
 
 -- Advanced Config: Add Surrogate Keys from Dimensions
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- Step 1: Join with customer dimension
@@ -497,13 +497,13 @@ VALUES
 ### Pattern 5: Create Dimension Table with SCD Type 2
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('CustomerDim', 1, 105, 'gold', 'dbo.dim_customer', 'customer_id', 'batch', 1);
 
 -- Primary Config
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (105, 'source_details', 'table_name', 'silver.dbo.customers'),
@@ -517,7 +517,7 @@ VALUES
     (105, 'target_details', 'source_timestamp_column_name', 'delta__modified_datetime');
 
 -- Advanced Config: Create Surrogate Key
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     (105, 'data_transformation_steps', 'create_surrogate_key', 1, 'type', 'auto_increment'),
@@ -527,14 +527,14 @@ VALUES
 ### Pattern 6: Delta Tables with Change Data Feed (Incremental with Delete Tracking)
 ```sql
 -- Orchestration
-INSERT INTO dbo.Data_Pipeline_Metadata_Orchestration
+INSERT INTO Data_Pipeline_Metadata_Orchestration
 ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
 VALUES
     ('CustomerCDF', 1, 106, 'silver', 'dbo.customers_clean', 'customer_id', 'batch', 1);
 
 -- Primary Config with Change Data Feed
 -- Prerequisite: Enable CDF on source with: ALTER TABLE bronze.dbo.customers SET TBLPROPERTIES (delta.enableChangeDataFeed = true)
-INSERT INTO dbo.Data_Pipeline_Metadata_Primary_Configuration
+INSERT INTO Data_Pipeline_Metadata_Primary_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     -- Source: Bronze delta table with CDF enabled
@@ -548,7 +548,7 @@ VALUES
 -- Note: CDF adds _change_type, _commit_version (used for watermarking), _commit_timestamp (for observability)
 -- Note: The framework automatically filters OUT 'update_preimage' rows (before state)
 -- Only 'insert', 'update_postimage', and 'delete' rows are included by default
-INSERT INTO dbo.Data_Pipeline_Metadata_Advanced_Configuration
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
 (Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
 VALUES
     -- RECOMMENDED: Drop duplicates on primary keys to handle multiple changes per record

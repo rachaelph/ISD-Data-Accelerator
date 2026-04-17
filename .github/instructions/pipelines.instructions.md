@@ -18,7 +18,7 @@ applyTo: "**/*.DataPipeline/**,data_pipelines/**"
 | `PL_02_Get_External_Data_Copy` | Copies data from external source |
 | `PL_02_Get_External_Data_Metadata` | Gets metadata from external source |
 | `PL_02_Get_External_Data_Watermark` | Handles watermark/incremental loading |
-| `PL_03_Execute_Non_Framework_Method` | Orchestrates non-framework execution methods such as warehouse stored procedures, custom Fabric notebooks, and dataflows |
+| `PL_03_Execute_Non_Framework_Method` | Orchestrates non-framework execution methods such as warehouse stored procedures, custom Databricks notebooks, and external jobs |
 | `PL_Exploratory_Data_Analysis` | Runs EDA notebook |
 
 ### Orchestration Hierarchy
@@ -42,26 +42,26 @@ When modifying pipelines:
 
 ### Pattern 2: "Inner activity name: If Data Staging Required"
 **Cause**: Error in the staging or data write phase
-**Solution**: Check if source data exists, connection is valid, target lakehouse accessible
+**Solution**: Check if source data exists, connection is valid, target catalog/schema accessible
 
 ### Pattern 3: Schema Mismatch / Column Not Found
 **Cause**: Source schema changed, or metadata doesn't match actual data
 **Solution**:
-- Check `dbo.Schema_Logs` for schema evolution
+- Check `Schema_Logs` for schema evolution
 - Set `fail_on_new_schema = 'false'` for auto-evolution
 - Or update metadata to match new schema
 
 ### Pattern 4: Data Quality Failures
 **Cause**: Records failed validation rules
 **Solution**:
-- Query `dbo.Data_Quality_Notifications` for details
+- Query `Data_Quality_Notifications` for details
 - Check quarantine table: `{target_table}_quarantined`
 - Review/fix source data or adjust DQ rules
 
 ### Pattern 5: Watermark Issues / Missing Data
 **Cause**: Watermark value too high, or late-arriving data
 **Solution**:
-- Query `dbo.Data_Pipeline_Logs` for watermark values
+- Query `Data_Pipeline_Logs` for watermark values
 - Reset watermark or trigger full reload
 - Consider multiple watermark columns for Delta sources
 
@@ -86,7 +86,7 @@ SELECT TOP 20
     Log_ID, Table_ID, Trigger_Name, Target_Entity,
     Ingestion_Status, Ingestion_Start_Time, Ingestion_End_Time,
     Job_Run_URL
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Ingestion_Status = 'Failed'
 ORDER BY Ingestion_Start_Time DESC
 ```
@@ -94,7 +94,7 @@ ORDER BY Ingestion_Start_Time DESC
 ### Data Quality Issues for a Table
 ```sql
 SELECT *
-FROM dbo.Data_Quality_Notifications
+FROM Data_Quality_Notifications
 WHERE Table_ID = @TableID
 ORDER BY Ingestion_Start_Time DESC
 ```
@@ -104,7 +104,7 @@ ORDER BY Ingestion_Start_Time DESC
 SELECT
     Table_ID, Target_Entity, Watermark_Value,
     Ingestion_Start_Time, Records_Processed
-FROM dbo.Data_Pipeline_Logs
+FROM Data_Pipeline_Logs
 WHERE Table_ID = @TableID
   AND Ingestion_Status = 'Processed'
 ORDER BY Ingestion_Start_Time DESC

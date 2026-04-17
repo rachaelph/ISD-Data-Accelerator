@@ -1,6 +1,6 @@
 ---
 agent: agent
-description: "Execute a single table or full trigger in a Fabric workspace using the Python runner and shared observability tooling"
+description: "Execute a single table or full trigger against a Databricks workspace using the Python runner and shared observability tooling"
 ---
 
 # Run Pipeline
@@ -36,7 +36,7 @@ Prompt-specific additions for `/fdp-05-run`:
 
 1. Invoke `automation_scripts/agents/run_pipeline.py` exactly once per requested run.
 2. Keep `isBackground: false`.
-3. If execution is cancelled, stop and ask before any re-run because the prior Fabric run may still be active.
+3. If execution is cancelled, stop and ask before any re-run because the prior Databricks run may still be active.
 4. Follow the shared auth-preflight rule in `../common-patterns/terminal-execution-safety.md` before the run flow starts.
 5. Use the canonical command shape below instead of reconstructing arguments from the script source.
 6. Load the `table-observability` skill for post-run lookups instead of re-deriving query selection logic in the prompt.
@@ -86,7 +86,7 @@ Prompt-specific additions for `/fdp-05-run`:
     - For failed runs, check for correlated `Activity_Run_Logs` first by execution or `Log_ID`.
     - If notebook logs exist, summarize the relevant failure details and include the Job Instance ID when available.
     - If notebook logs do not exist but matching `Data_Pipeline_Logs` rows exist, return the failure result and direct the user to inspect the `Job_Run_URL`.
-    - If neither notebook logs nor matching `Data_Pipeline_Logs` rows exist, say that no logs were found and tell the user to inspect the failure in Fabric Monitor.
+    - If neither notebook logs nor matching `Data_Pipeline_Logs` rows exist, say that no logs were found and tell the user to inspect the failure in the Databricks Jobs UI.
     - Always include the Job Instance ID for failed or timed-out runs when it is available.
     - For timed-out runs, provide the Job Instance ID and Monitor URL and offer a longer re-poll.
     - For failed starts, review the returned start failure details first. Only then point to auth, missing item, conflicting active run, or workspace sync issues when the returned evidence supports that conclusion.

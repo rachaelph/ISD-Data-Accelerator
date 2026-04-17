@@ -27,11 +27,11 @@ Query the pipeline logs:
 
 ```sql
 SELECT  Table_ID, Trigger_Step, Ingestion_Status
-FROM    dbo.Data_Pipeline_Logs
+FROM    Data_Pipeline_Logs
 WHERE   Trigger_Name = 'YourTrigger'
 AND     Trigger_Execution_Start_Time = (
             SELECT MAX(Trigger_Execution_Start_Time)
-            FROM   dbo.Data_Pipeline_Logs
+            FROM   Data_Pipeline_Logs
             WHERE  Trigger_Name = 'YourTrigger'
         )
 ORDER BY Trigger_Step, Table_ID
@@ -215,11 +215,11 @@ The error message provides the exact query. After verifying the records are from
 ```sql
 -- Find orphaned Log_IDs
 SELECT  [Log_ID]
-FROM    dbo.Data_Pipeline_Logs
+FROM    Data_Pipeline_Logs
 WHERE   [Table_ID] = 30
 AND     [Log_ID] IN (
             SELECT      [Log_ID]
-            FROM        dbo.Data_Pipeline_Logs
+            FROM        Data_Pipeline_Logs
             WHERE       [Table_ID] = 30
             AND         [Processing_Phase] = 'Staging'
             GROUP BY    [Log_ID]
@@ -228,7 +228,7 @@ AND     [Log_ID] IN (
 AND     [Ingestion_Start_Time] > DATEADD(hh, -24, GETUTCDATE())
 
 -- Delete after confirming they're from the interrupted run
-DELETE FROM dbo.Data_Pipeline_Logs
+DELETE FROM Data_Pipeline_Logs
 WHERE  [Log_ID] IN ('<log_id_1>', '<log_id_2>')
 ```
 

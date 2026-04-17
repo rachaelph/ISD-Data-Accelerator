@@ -213,19 +213,19 @@ SELECT
     e.Total_Rows AS Profiled_Row_Count,
     e.Table_Last_Modified_Time AS Table_Last_Modified,
     DATEDIFF(HOUR, e.Table_Last_Modified_Time, GETUTCDATE()) AS Hours_Since_Table_Modified
-FROM dbo.Data_Pipeline_Metadata_Orchestration o
-JOIN dbo.Datastore_Configuration d
+FROM Data_Pipeline_Metadata_Orchestration o
+JOIN Datastore_Configuration d
     ON LOWER(o.Target_Datastore) = LOWER(d.Datastore_Name)
 LEFT JOIN (
     SELECT Table_ID, Ingestion_Status, Ingestion_End_Time, Records_Processed,
            ROW_NUMBER() OVER (PARTITION BY Table_ID ORDER BY Ingestion_End_Time DESC) AS rn
-    FROM dbo.Data_Pipeline_Logs
+    FROM Data_Pipeline_Logs
     WHERE Processing_Phase = 'Batch'
 ) l ON o.Table_ID = l.Table_ID AND l.rn = 1
 LEFT JOIN (
     SELECT Table_ID, Data_Profile_Execution_Time, Total_Rows, Table_Last_Modified_Time,
            ROW_NUMBER() OVER (PARTITION BY Table_ID ORDER BY Data_Profile_Execution_Time DESC) AS rn
-    FROM dbo.Exploratory_Data_Analysis_Results
+    FROM Exploratory_Data_Analysis_Results
 ) e ON o.Table_ID = e.Table_ID AND e.rn = 1
 WHERE o.Table_ID = {Table_ID};
 ```
