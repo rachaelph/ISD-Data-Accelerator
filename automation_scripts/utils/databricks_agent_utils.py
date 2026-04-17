@@ -28,7 +28,7 @@ AUTH_GUIDANCE_MESSAGE = (
     "Databricks authentication is not configured. Set DATABRICKS_HOST and DATABRICKS_TOKEN "
     "environment variables, or configure a Databricks CLI profile with 'databricks auth login'."
 )
-STATEMENT_TIMEOUT = "120s"
+STATEMENT_TIMEOUT = "50s"
 
 READ_ONLY_SQL_PATTERN = re.compile(r"^\s*SELECT\b", re.IGNORECASE | re.DOTALL)
 FORBIDDEN_SQL_KEYWORDS = [
