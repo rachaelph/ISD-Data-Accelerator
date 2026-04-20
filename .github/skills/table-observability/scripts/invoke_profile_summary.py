@@ -63,13 +63,13 @@ def sql_string_literal(value: str) -> str:
 
 
 def sql_identifier(value: str) -> str:
-    return value.replace("]", "]]")
+    return value.replace("`", "``")
 
 
 def get_cached_profile_sql(table_id: int) -> str:
     return (
         "SELECT Table_Name, Column_Name, Data_Type, Total_Rows, Approx_Distinct_Values, Null_Count, "
-        "Null_Percent, Mean, Std_Dev, [Min], [Max], Data_Profile_Execution_Time, Table_Last_Modified_Time "
+        "Null_Percent, Mean, Std_Dev, `Min`, `Max`, Data_Profile_Execution_Time, Table_Last_Modified_Time "
         "FROM Exploratory_Data_Analysis_Results "
         f"WHERE Table_ID = {table_id} "
         "AND Data_Profile_Execution_Time = ("
@@ -92,53 +92,61 @@ def get_schema_sql(schema_name: str, table_name: str) -> str:
 
 
 def build_live_profile_query(schema_name: str, table_name: str, column_name: str, data_type: str, qualified_table_name: str) -> str:
-    escaped_schema = sql_identifier(schema_name)
-    escaped_table = sql_identifier(table_name)
     escaped_column = sql_identifier(column_name)
     escaped_table_name = sql_string_literal(qualified_table_name)
     escaped_column_name = sql_string_literal(column_name)
     escaped_data_type = sql_string_literal(data_type)
+    table_ref = f"`{sql_identifier(schema_name)}`.`{sql_identifier(table_name)}`"
 
     select_prefix = (
         f"SELECT '{escaped_table_name}' AS Table_Name, "
         f"'{escaped_column_name}' AS Column_Name, "
         f"'{escaped_data_type}' AS Data_Type, "
         "COUNT(*) AS Total_Rows, "
-        f"COUNT(DISTINCT [{escaped_column}]) AS Approx_Distinct_Values, "
-        f"COUNT(*) - COUNT([{escaped_column}]) AS Null_Count, "
-        f"CAST((COUNT(*) - COUNT([{escaped_column}])) * 1.0 / NULLIF(COUNT(*), 0) AS DECIMAL(18,4)) AS Null_Percent, "
+        f"COUNT(DISTINCT `{escaped_column}`) AS Approx_Distinct_Values, "
+        f"COUNT(*) - COUNT(`{escaped_column}`) AS Null_Count, "
+        f"CAST((COUNT(*) - COUNT(`{escaped_column}`)) * 1.0 / NULLIF(COUNT(*), 0) AS DECIMAL(18,4)) AS Null_Percent, "
     )
 
     normalized_type = data_type.lower()
     if normalized_type in NUMERIC_TYPES:
         summary_columns = (
-            f"CAST(AVG(CAST([{escaped_column}] AS FLOAT)) AS DECIMAL(20,4)) AS Mean, "
-            f"CAST(STDEV(CAST([{escaped_column}] AS FLOAT)) AS DECIMAL(20,4)) AS Std_Dev, "
-            f"MIN([{escaped_column}]) AS [Min], "
-            f"MAX([{escaped_column}]) AS [Max], "
+            f"CAST(AVG(CAST(`{escaped_column}` AS DOUBLE)) AS DECIMAL(20,4)) AS Mean, "
+            f"CAST(STDDEV_SAMP(CAST(`{escaped_column}` AS DOUBLE)) AS DECIMAL(20,4)) AS Std_Dev, "
+            f"MIN(`{escaped_column}`) AS `Min`, "
+            f"MAX(`{escaped_column}`) AS `Max`, "
         )
     elif normalized_type in TEMPORAL_TYPES:
         summary_columns = (
             "CAST(NULL AS DECIMAL(20,4)) AS Mean, "
             "CAST(NULL AS DECIMAL(20,4)) AS Std_Dev, "
-            f"MIN([{escaped_column}]) AS [Min], "
-            f"MAX([{escaped_column}]) AS [Max], "
+            f"MIN(`{escaped_column}`) AS `Min`, "
+            f"MAX(`{escaped_column}`) AS `Max`, "
         )
     else:
         summary_columns = (
             "CAST(NULL AS DECIMAL(20,4)) AS Mean, "
             "CAST(NULL AS DECIMAL(20,4)) AS Std_Dev, "
-            "CAST(NULL AS NVARCHAR(4000)) AS [Min], "
-            "CAST(NULL AS NVARCHAR(4000)) AS [Max], "
+            "CAST(NULL AS STRING) AS `Min`, "
+            "CAST(NULL AS STRING) AS `Max`, "
         )
 
     return (
         select_prefix
         + summary_columns
-        + "SYSUTCDATETIME() AS Data_Profile_Execution_Time, "
-        + "CAST(NULL AS DATETIME2) AS Table_Last_Modified_Time "
-        + f"FROM [{escaped_schema}].[{escaped_table}];"
+        + "current_timestamp() AS Data_Profile_Execution_Time, "
+        + "CAST(NULL AS TIMESTAMP) AS Table_Last_Modified_Time "
+        + f"FROM {table_ref}"
     )
+
+
+def split_namespace(database_name: str) -> tuple[str | None, str | None]:
+    parts = [part.strip() for part in database_name.split(".") if part.strip()]
+    if len(parts) >= 2:
+        return parts[0], parts[1]
+    if len(parts) == 1:
+        return None, parts[0]
+    return None, None
 
 
 def resolve_table_id(args: argparse.Namespace) -> int:
@@ -169,6 +177,8 @@ def get_live_profile_rows(args: argparse.Namespace, table_id: int) -> tuple[dict
     schema_rows = execute_sql_query(
         target_resolution.endpoint,
         get_schema_sql(schema_name, table_name),
+        catalog=target_resolution.datastore_name,
+        schema=target_resolution.medallion_layer,
     ).rows
     if not schema_rows:
         raise AgentError(
@@ -187,7 +197,12 @@ def get_live_profile_rows(args: argparse.Namespace, table_id: int) -> tuple[dict
             )
         )
 
-    query_results = execute_sql_queries(target_resolution.endpoint, queries)
+    query_results = execute_sql_queries(
+        target_resolution.endpoint,
+        queries,
+        catalog=target_resolution.datastore_name,
+        schema=target_resolution.medallion_layer,
+    )
     ordered_rows: list[dict[str, object]] = []
     for row in schema_rows:
         column_name = str(row["COLUMN_NAME"])
@@ -222,9 +237,12 @@ def main() -> int:
             args.engine_folder,
             args.environment,
         )
+        metadata_catalog, metadata_schema = split_namespace(metadata_resolution.metadata_database_name)
         cached_rows = execute_sql_query(
             metadata_resolution.metadata_warehouse_id,
             get_cached_profile_sql(table_id),
+            catalog=metadata_catalog,
+            schema=metadata_schema,
         ).rows
 
         payload: dict[str, object] = {

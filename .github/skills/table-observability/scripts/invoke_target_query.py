@@ -30,15 +30,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def sql_identifier(value: str) -> str:
+    return value.replace("`", "``")
+
+
+def qualified_table_name(schema_name: str, table_name: str) -> str:
+    return f"`{sql_identifier(schema_name)}`.`{sql_identifier(table_name)}`"
+
+
 def build_query(query_type: str, args: argparse.Namespace, schema_name: str, table_name: str) -> str:
     if query_type == "Schema":
         return f"SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE, IS_NULLABLE, ORDINAL_POSITION FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema_name}' AND TABLE_NAME = '{table_name}' ORDER BY ORDINAL_POSITION"
     if query_type == "RowCount":
-        return f"SELECT COUNT(*) AS Total_Rows FROM [{schema_name}].[{table_name}]"
+        return f"SELECT COUNT(*) AS Total_Rows FROM {qualified_table_name(schema_name, table_name)}"
     if query_type == "Sample":
-        return f"SELECT TOP {args.sample_size} * FROM [{schema_name}].[{table_name}]"
+        return f"SELECT * FROM {qualified_table_name(schema_name, table_name)} LIMIT {args.sample_size}"
     if query_type == "SampleOrdered":
-        return f"SELECT TOP {args.sample_size} * FROM [{schema_name}].[{table_name}] ORDER BY [{args.order_by_column}]"
+        return (
+            f"SELECT * FROM {qualified_table_name(schema_name, table_name)} "
+            f"ORDER BY `{sql_identifier(args.order_by_column)}` LIMIT {args.sample_size}"
+        )
     assert args.query is not None
     return args.query.replace("{Schema}", schema_name).replace("{Table}", table_name)
 
@@ -97,7 +108,12 @@ def main() -> int:
             enforce_read_only_query(sql)
         if len(queries) == 1:
             query_label, sql = queries[0]
-            rows = execute_sql_query(resolution.endpoint, sql).rows
+            rows = execute_sql_query(
+                resolution.endpoint,
+                sql,
+                catalog=resolution.datastore_name,
+                schema=resolution.medallion_layer,
+            ).rows
             payload = {
                 "environment": resolution.environment,
                 "datastoreName": resolution.datastore_name,
@@ -109,7 +125,12 @@ def main() -> int:
                 "rows": rows,
             }
         else:
-            results = execute_sql_queries(resolution.endpoint, queries)
+            results = execute_sql_queries(
+                resolution.endpoint,
+                queries,
+                catalog=resolution.datastore_name,
+                schema=resolution.medallion_layer,
+            )
             payload = {
                 "environment": resolution.environment,
                 "datastoreName": resolution.datastore_name,

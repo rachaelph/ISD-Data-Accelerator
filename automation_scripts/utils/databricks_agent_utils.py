@@ -1178,6 +1178,9 @@ def resolve_datastore_endpoint(
             f"Available layers: {available}."
         )
 
+    if target_entity and "." not in target_entity:
+        target_entity = f"{layer_key}.{target_entity.strip()}"
+
     return DatastoreResolution(
         endpoint=config.sql_warehouse_id,
         datastore_name=layer_def["catalog"],
