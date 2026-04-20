@@ -239,7 +239,7 @@ The following parameters are set by the calling job task (entity router for `bat
 
 ### Detailed Logic and Steps
 
-The module is organized into 10 numbered sections. Every section's `except` block calls `log_failure_and_cleanup()`, which logs a "Failed" status to `Data_Pipeline_Logs`, flushes the structured run-log buffer to `Activity_Run_Logs`, and closes connections before re-raising the exception.
+The module is organized into 10 numbered sections. Every section's `except` block calls `log_failure_and_cleanup()`, which logs a "Failed" status to `Data_Pipeline_Logs`, persists the structured run-log buffer directly to the Delta-backed `Activity_Run_Logs` table, and closes connections before re-raising the exception.
 
 1. **Module Parameters**
    - Configure Spark compute if `spark_environment_id` is specified
@@ -276,7 +276,7 @@ The module is organized into 10 numbered sections. Every section's `except` bloc
 6. **Full Reload Check & Data Ingestion**
    - Call `determine_first_run_and_table_existence()` to check if target table exists and whether a full reload is needed
    - Call `route_to_ingestion_method()` to ingest from the configured source (Delta tables, files, or external databases)
-    - On `NoDataFoundError`: calls `log_no_data_and_cleanup()` to log "Processed" with 0 records, flush structured `Activity_Run_Logs`, then exit gracefully
+    - On `NoDataFoundError`: calls `log_no_data_and_cleanup()` to log "Processed" with 0 records, persist structured `Activity_Run_Logs`, then exit gracefully
    - Returns `new_data` DataFrame, `new_watermark_value`, and `source_details`
 
 7. **Column Standardization & Schema Alignment**
@@ -307,7 +307,7 @@ The module is organized into 10 numbered sections. Every section's `except` bloc
 10. **Success Logging & Cleanup**
     - Populate the log entry with `source_details`, `event_end_time`, `watermark_value`, `records_processed`, `quarantined_records`, and `data_quality_warnings`
     - Call `log_data_movement(logging_conn, log_entry, status='Processed')` to record the successful run
-    - Call `persist_run_log_entries(logging_conn, log_entry.log_id, log_entry.table_id)` to flush structured step-level messages to `Activity_Run_Logs`
+    - Call `persist_run_log_entries(logging_conn, log_entry.log_id, log_entry.table_id)` to append structured step-level messages directly to the Delta-backed `Activity_Run_Logs` table
     - If a schema change was detected, call `log_new_schema()` to record it in `Schema_Logs`
     - Close the logging warehouse connection
 

@@ -1968,12 +1968,67 @@ def log_data_movement(conn, entry: DataMovementLogEntry, status: str) -> None:
     log_and_print(f"Logged data movement: status={status}, log_id={entry.log_id}")
 
 
-def persist_run_log_entries(conn, log_id: str, table_id: int, source_type: str = "Notebook") -> None:
-    """Persist structured log entries to Activity_Run_Logs via the Insert_Activity_Log_Entries SP.
+def _parse_activity_log_timestamp(value) -> Optional[object]:
+    """Convert buffered activity-log timestamps to Python datetimes for Spark writes."""
+    from datetime import datetime as _datetime
 
-    Reads the accumulated structured entries from get_run_log_entries(), serializes
-    them to JSON, and bulk-inserts via the stored procedure. Safe to call even if
-    the buffer is empty (no-ops gracefully).
+    if value in (None, ""):
+        return None
+    if isinstance(value, _datetime):
+        return value
+
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+
+    try:
+        return _datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def _build_activity_log_rows(log_id: str, table_id: int, source_type: str = "Notebook") -> list[tuple]:
+    """Materialize buffered activity-log entries into Delta-ready rows."""
+    rows: list[tuple] = []
+    buffered_entries = list(globals().get("_run_log_buffer", []) or [])
+    for index, entry in enumerate(buffered_entries, start=1):
+        sequence_number = entry.get("seq")
+        try:
+            normalized_sequence = int(sequence_number) if sequence_number is not None else index
+        except (TypeError, ValueError):
+            normalized_sequence = index
+
+        step_number = entry.get("step_number")
+        try:
+            normalized_step_number = int(step_number) if step_number is not None else None
+        except (TypeError, ValueError):
+            normalized_step_number = None
+
+        rows.append(
+            (
+                int(table_id),
+                str(log_id),
+                normalized_sequence,
+                _parse_activity_log_timestamp(entry.get("ts")),
+                str(entry.get("level") or "INFO"),
+                str(entry.get("step_name") or "") or None,
+                normalized_step_number,
+                _sanitize_error_message(str(entry.get("message") or ""), max_length=4000),
+                str(source_type or "Notebook"),
+            )
+        )
+    return rows
+
+
+def persist_run_log_entries(conn, log_id: str, table_id: int, source_type: str = "Notebook") -> None:
+    """Persist structured log entries to Activity_Run_Logs via direct Spark Delta append.
+
+    Databricks already has native access to the Delta-backed metadata tables, so
+    notebook activity logs can be appended directly instead of being routed through
+    the SQL stored procedure JSON payload path. Safe to call even if the buffer is
+    empty (no-ops gracefully).
 
     Args:
         conn: Active SQL connection to the logging namespace
@@ -1981,19 +2036,31 @@ def persist_run_log_entries(conn, log_id: str, table_id: int, source_type: str =
         table_id: The Table_ID from orchestration metadata
         source_type: Origin label for Source_Type column (default: 'Notebook')
     """
-    entries = get_run_log_entries()
-    if not entries:
+    activity_rows = _build_activity_log_rows(log_id, table_id, source_type)
+    if not activity_rows:
         return
 
-    entries_json = json.dumps(entries, default=str)
+    namespace = str(getattr(conn, 'namespace', '') or '').strip()
+    if not namespace:
+        raise ValueError("Databricks SQL connection is missing a catalog.schema namespace.")
 
-    cursor = conn.cursor()
-    cursor.execute(
-        f"CALL {_metadata_object_name(conn, 'Insert_Activity_Log_Entries')}(?, ?, ?, ?)",
-        (log_id, table_id, entries_json, source_type),
+    from pyspark.sql.types import IntegerType, StringType, StructField, StructType, TimestampType
+
+    activity_log_schema = StructType([
+        StructField("Table_ID", IntegerType(), False),
+        StructField("Log_ID", StringType(), False),
+        StructField("Sequence_Number", IntegerType(), False),
+        StructField("Log_Timestamp", TimestampType(), True),
+        StructField("Log_Level", StringType(), False),
+        StructField("Step_Name", StringType(), True),
+        StructField("Step_Number", IntegerType(), True),
+        StructField("Message", StringType(), False),
+        StructField("Source_Type", StringType(), False),
+    ])
+
+    spark.createDataFrame(activity_rows, schema=activity_log_schema).write.mode("append").saveAsTable(
+        f"{namespace}.Activity_Run_Logs"
     )
-    _drain_remaining_result_sets(cursor)
-    cursor.close()
 
 
 def log_new_schema(

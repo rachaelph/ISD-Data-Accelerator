@@ -14,6 +14,30 @@ from automation_scripts.agents.query_capabilities import QUERY_TYPE_CHOICES, val
 from automation_scripts.utils.databricks_agent_utils import AgentError, execute_sql_query, execute_sql_queries, resolve_metadata_warehouse_from_datastore, resolve_table_id_from_metadata
 
 
+def _split_namespace(database_name: str) -> tuple[str | None, str | None]:
+    """Split a ``catalog.schema`` namespace into ``(catalog, schema)``.
+
+    ``execute_sql_query`` takes ``catalog`` and ``schema`` as separate
+    arguments; metadata resolvers return them joined with a dot.
+    """
+    if not database_name:
+        return None, None
+    if "." in database_name:
+        catalog, schema = database_name.split(".", 1)
+        return catalog or None, schema or None
+    return database_name, None
+
+
+def _run_query(warehouse_id: str, database_name: str, sql: str):
+    catalog, schema = _split_namespace(database_name)
+    return execute_sql_query(warehouse_id, sql, catalog=catalog, schema=schema)
+
+
+def _run_queries(warehouse_id: str, database_name: str, queries):
+    catalog, schema = _split_namespace(database_name)
+    return execute_sql_queries(warehouse_id, queries, catalog=catalog, schema=schema)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deterministic one-shot script for metadata-warehouse investigations.")
     parser.add_argument("--source-directory", type=Path, default=Path("."))
@@ -67,22 +91,22 @@ def get_run_by_execution_sql(args: argparse.Namespace) -> str:
     execution_filter = f"Trigger_Execution_ID = '{sql_string_literal(args.trigger_execution_id)}'"
     table_filter = f" AND Table_ID = {args.table_id}" if args.table_id is not None else ""
     return (
-        "SELECT TOP {top} Log_ID, Table_ID, Target_Entity, Trigger_Name, Trigger_Step, Ingestion_Status, "
+        "SELECT Log_ID, Table_ID, Target_Entity, Trigger_Name, Trigger_Step, Ingestion_Status, "
         "Processing_Phase, Records_Processed, Quarantined_Records, Ingestion_Start_Time, Ingestion_End_Time, "
-        "DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Job_Run_URL "
+        "TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Job_Run_URL "
         "FROM Data_Pipeline_Logs WHERE {execution_filter}{table_filter} "
-        "ORDER BY Ingestion_End_Time DESC, Ingestion_Start_Time DESC;"
+        "ORDER BY Ingestion_End_Time DESC, Ingestion_Start_Time DESC LIMIT {top};"
     ).format(top=args.top, execution_filter=execution_filter, table_filter=table_filter)
 
 
 def get_recent_runs_sql(table_id: int, top: int, days: int) -> str:
     return (
-        "SELECT TOP {top} Log_ID, Table_ID, Target_Entity, Trigger_Name, Ingestion_Status, Processing_Phase, "
+        "SELECT Log_ID, Table_ID, Target_Entity, Trigger_Name, Ingestion_Status, Processing_Phase, "
         "Records_Processed, Quarantined_Records, Ingestion_Start_Time, Ingestion_End_Time, "
-        "DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Watermark_Value, "
+        "TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Watermark_Value, "
         "Job_Run_URL FROM Data_Pipeline_Logs WHERE Table_ID = {table_id} "
-        "AND Ingestion_Start_Time >= DATEADD(DAY, -{days}, GETUTCDATE()) "
-        "ORDER BY COALESCE(Ingestion_End_Time, Ingestion_Start_Time) DESC, Ingestion_Start_Time DESC;"
+        "AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {days} DAY "
+        "ORDER BY COALESCE(Ingestion_End_Time, Ingestion_Start_Time) DESC, Ingestion_Start_Time DESC LIMIT {top};"
     ).format(top=top, table_id=table_id, days=days)
 
 
@@ -91,19 +115,20 @@ def get_latest_run_by_trigger_sql(trigger_name: str, table_ids: list[int], days:
     escaped_trigger_name = sql_string_literal(trigger_name)
     return (
         "WITH latest_execution AS ("
-        " SELECT TOP 1 Trigger_Execution_ID, MAX(COALESCE(Ingestion_End_Time, Ingestion_Start_Time)) AS Run_End_Time"
+        " SELECT Trigger_Execution_ID, MAX(COALESCE(Ingestion_End_Time, Ingestion_Start_Time)) AS Run_End_Time"
         " FROM Data_Pipeline_Logs"
         " WHERE Trigger_Name = '{trigger_name}'"
         "   AND Trigger_Execution_ID IS NOT NULL"
-        "   AND Ingestion_Start_Time >= DATEADD(DAY, -{days}, GETUTCDATE())"
+        "   AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {days} DAY"
         "   {table_filter}"
         " GROUP BY Trigger_Execution_ID"
         " ORDER BY MAX(COALESCE(Ingestion_End_Time, Ingestion_Start_Time)) DESC"
+        " LIMIT 1"
         ")"
         " SELECT l.Log_ID, l.Table_ID, l.Target_Entity, l.Trigger_Name, l.Trigger_Step, l.Trigger_Execution_ID,"
         " l.Ingestion_Status, l.Processing_Phase, l.Records_Processed, l.Quarantined_Records,"
         " l.Ingestion_Start_Time, l.Ingestion_End_Time,"
-        " DATEDIFF(SECOND, l.Ingestion_Start_Time, l.Ingestion_End_Time) AS Duration_Seconds,"
+        " TIMESTAMPDIFF(SECOND, l.Ingestion_Start_Time, l.Ingestion_End_Time) AS Duration_Seconds,"
         " l.Watermark_Value, l.Job_Run_URL"
         " FROM Data_Pipeline_Logs l"
         " JOIN latest_execution e ON l.Trigger_Execution_ID = e.Trigger_Execution_ID"
@@ -144,38 +169,38 @@ def get_activity_logs_by_table_id_sql(table_id: int, hours: int) -> str:
     return (
         "SELECT Table_ID, Log_ID, Sequence_Number, Log_Timestamp, Log_Level, Step_Name, Step_Number, Message, Source_Type "
         "FROM Activity_Run_Logs WHERE Table_ID = {table_id} "
-        "AND Log_Timestamp >= DATEADD(HOUR, -{hours}, GETUTCDATE()) "
+        "AND Log_Timestamp >= current_timestamp() - INTERVAL {hours} HOUR "
         "ORDER BY Log_Timestamp DESC, Sequence_Number ASC;"
     ).format(table_id=table_id, hours=hours)
 
 
 def get_single_query_sql(args: argparse.Namespace) -> str | None:
     if args.query_type == "RunStatus":
-        return f"""SELECT TOP {args.top} Log_ID, Table_ID, Target_Entity, Ingestion_Status, Processing_Phase, Records_Processed, Quarantined_Records, Ingestion_Start_Time, Ingestion_End_Time, DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Watermark_Value, Job_Run_URL FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} ORDER BY Ingestion_End_Time DESC;"""
+        return f"""SELECT Log_ID, Table_ID, Target_Entity, Ingestion_Status, Processing_Phase, Records_Processed, Quarantined_Records, Ingestion_Start_Time, Ingestion_End_Time, TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Watermark_Value, Job_Run_URL FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} ORDER BY Ingestion_End_Time DESC LIMIT {args.top};"""
     if args.query_type == "RecentRuns":
         return get_recent_runs_sql(args.table_id, args.top, args.days)
     if args.query_type == "RecentFailures":
-        return f"""SELECT l.Log_ID, l.Table_ID, l.Target_Entity, l.Trigger_Name, l.Ingestion_Start_Time, l.Ingestion_End_Time, l.Job_Run_URL FROM Data_Pipeline_Logs l WHERE l.Ingestion_Status = 'Failed' AND l.Ingestion_Start_Time >= DATEADD(HOUR, -{args.hours}, GETUTCDATE()) ORDER BY l.Ingestion_Start_Time DESC;"""
+        return f"""SELECT l.Log_ID, l.Table_ID, l.Target_Entity, l.Trigger_Name, l.Ingestion_Start_Time, l.Ingestion_End_Time, l.Job_Run_URL FROM Data_Pipeline_Logs l WHERE l.Ingestion_Status = 'Failed' AND l.Ingestion_Start_Time >= current_timestamp() - INTERVAL {args.hours} HOUR ORDER BY l.Ingestion_Start_Time DESC;"""
     if args.query_type == "RunPerformance":
-        return f"""SELECT Table_ID, Target_Entity, Processing_Phase, COUNT(*) AS Run_Count, AVG(DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Avg_Duration_Seconds, MIN(DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Min_Duration_Seconds, MAX(DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Max_Duration_Seconds, AVG(Records_Processed) AS Avg_Records_Processed FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} AND Ingestion_Status = 'Processed' AND Ingestion_Start_Time >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY Table_ID, Target_Entity, Processing_Phase;"""
+        return f"""SELECT Table_ID, Target_Entity, Processing_Phase, COUNT(*) AS Run_Count, AVG(TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Avg_Duration_Seconds, MIN(TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Min_Duration_Seconds, MAX(TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time)) AS Max_Duration_Seconds, AVG(Records_Processed) AS Avg_Records_Processed FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} AND Ingestion_Status = 'Processed' AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY Table_ID, Target_Entity, Processing_Phase;"""
     if args.query_type == "VolumeTrend":
-        return f"""SELECT d.[Date], d.Day_Name, SUM(l.Records_Processed) AS Total_Records, SUM(l.Quarantined_Records) AS Total_Quarantined, COUNT(*) AS Run_Count FROM Data_Pipeline_Logs l JOIN Date_Dimension d ON l.Date_Key = d.Date_Key WHERE l.Table_ID = {args.table_id} AND l.Ingestion_Status = 'Processed' AND d.[Date] >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY d.[Date], d.Day_Name ORDER BY d.[Date] DESC;"""
+        return f"""SELECT d.`Date`, d.Day_Name, SUM(l.Records_Processed) AS Total_Records, SUM(l.Quarantined_Records) AS Total_Quarantined, COUNT(*) AS Run_Count FROM Data_Pipeline_Logs l JOIN Date_Dimension d ON l.Date_Key = d.Date_Key WHERE l.Table_ID = {args.table_id} AND l.Ingestion_Status = 'Processed' AND d.`Date` >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY d.`Date`, d.Day_Name ORDER BY d.`Date` DESC;"""
     if args.query_type == "WatermarkProgress":
-        return f"""SELECT TOP {args.top} Log_ID, Ingestion_Start_Time, Ingestion_Status, Watermark_Value, Records_Processed FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} AND Watermark_Value IS NOT NULL AND Processing_Phase = 'Batch' ORDER BY Ingestion_End_Time DESC;"""
+        return f"""SELECT Log_ID, Ingestion_Start_Time, Ingestion_Status, Watermark_Value, Records_Processed FROM Data_Pipeline_Logs WHERE Table_ID = {args.table_id} AND Watermark_Value IS NOT NULL AND Processing_Phase = 'Batch' ORDER BY Ingestion_End_Time DESC LIMIT {args.top};"""
     if args.query_type == "TriggerReliability":
-        return f"""SELECT Trigger_Name, COUNT(*) AS Total_Runs, SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) AS Failed_Runs, SUM(CASE WHEN Ingestion_Status = 'Processed' THEN 1 ELSE 0 END) AS Successful_Runs, CAST(SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS Failure_Rate_Pct FROM Data_Pipeline_Logs WHERE Processing_Phase = 'Batch' AND Ingestion_Start_Time >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY Trigger_Name ORDER BY Failure_Rate_Pct DESC;"""
+        return f"""SELECT Trigger_Name, COUNT(*) AS Total_Runs, SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) AS Failed_Runs, SUM(CASE WHEN Ingestion_Status = 'Processed' THEN 1 ELSE 0 END) AS Successful_Runs, CAST(SUM(CASE WHEN Ingestion_Status = 'Failed' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0) AS DECIMAL(5,2)) AS Failure_Rate_Pct FROM Data_Pipeline_Logs WHERE Processing_Phase = 'Batch' AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY Trigger_Name ORDER BY Failure_Rate_Pct DESC;"""
     if args.query_type == "ActiveRuns":
-        return f"""SELECT TOP {args.top} Log_ID, Table_ID, Target_Entity, Trigger_Name, Processing_Phase, Ingestion_Start_Time, DATEDIFF(MINUTE, Ingestion_Start_Time, GETUTCDATE()) AS Minutes_Elapsed, Job_Run_URL FROM Data_Pipeline_Logs WHERE Ingestion_Status = 'Started' AND Ingestion_Start_Time >= DATEADD(HOUR, -{args.hours}, GETUTCDATE()) ORDER BY Ingestion_Start_Time ASC;"""
+        return f"""SELECT Log_ID, Table_ID, Target_Entity, Trigger_Name, Processing_Phase, Ingestion_Start_Time, TIMESTAMPDIFF(MINUTE, Ingestion_Start_Time, current_timestamp()) AS Minutes_Elapsed, Job_Run_URL FROM Data_Pipeline_Logs WHERE Ingestion_Status = 'Started' AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {args.hours} HOUR ORDER BY Ingestion_Start_Time ASC LIMIT {args.top};"""
     if args.query_type == "RunByExecution":
         return get_run_by_execution_sql(args)
     if args.query_type == "DQSummary":
         return f"""SELECT Log_ID, Table_Name, Data_Quality_Category, Data_Quality_Result, Data_Quality_Message, Rows_Impacted, Data_Quarantined, Rows_Quarantined, Ingestion_Start_Time, Job_Run_URL FROM Data_Quality_Notifications WHERE Table_ID = {args.table_id} ORDER BY Ingestion_Start_Time DESC;"""
     if args.query_type == "DQBreakdown":
-        return f"""SELECT Data_Quality_Category, Data_Quality_Result, COUNT(*) AS Occurrence_Count, SUM(Rows_Impacted) AS Total_Rows_Impacted, SUM(Rows_Quarantined) AS Total_Rows_Quarantined FROM Data_Quality_Notifications WHERE Table_ID = {args.table_id} AND Ingestion_Start_Time >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY Data_Quality_Category, Data_Quality_Result ORDER BY Occurrence_Count DESC;"""
+        return f"""SELECT Data_Quality_Category, Data_Quality_Result, COUNT(*) AS Occurrence_Count, SUM(Rows_Impacted) AS Total_Rows_Impacted, SUM(Rows_Quarantined) AS Total_Rows_Quarantined FROM Data_Quality_Notifications WHERE Table_ID = {args.table_id} AND Ingestion_Start_Time >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY Data_Quality_Category, Data_Quality_Result ORDER BY Occurrence_Count DESC;"""
     if args.query_type == "DQTrend":
-        return f"""SELECT d.[Date], d.Day_Name, SUM(dq.Rows_Quarantined) AS Total_Quarantined, SUM(dq.Rows_Impacted) AS Total_Impacted, COUNT(*) AS DQ_Notification_Count FROM Data_Quality_Notifications dq JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key WHERE dq.Table_ID = {args.table_id} AND d.[Date] >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY d.[Date], d.Day_Name ORDER BY d.[Date] DESC;"""
+        return f"""SELECT d.`Date`, d.Day_Name, SUM(dq.Rows_Quarantined) AS Total_Quarantined, SUM(dq.Rows_Impacted) AS Total_Impacted, COUNT(*) AS DQ_Notification_Count FROM Data_Quality_Notifications dq JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key WHERE dq.Table_ID = {args.table_id} AND d.`Date` >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY d.`Date`, d.Day_Name ORDER BY d.`Date` DESC;"""
     if args.query_type == "DQOverview":
-        return f"""SELECT TOP {args.top} dq.Table_ID, dq.Table_Name, dq.Datastore_Name, COUNT(*) AS Total_Notifications, SUM(CASE WHEN dq.Data_Quality_Result = 'Failure' THEN 1 ELSE 0 END) AS Failure_Count, SUM(CASE WHEN dq.Data_Quality_Result = 'Warning' THEN 1 ELSE 0 END) AS Warning_Count, SUM(dq.Rows_Quarantined) AS Total_Rows_Quarantined FROM Data_Quality_Notifications dq JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key WHERE d.[Date] >= DATEADD(DAY, -{args.days}, GETUTCDATE()) GROUP BY dq.Table_ID, dq.Table_Name, dq.Datastore_Name ORDER BY Total_Notifications DESC;"""
+        return f"""SELECT dq.Table_ID, dq.Table_Name, dq.Datastore_Name, COUNT(*) AS Total_Notifications, SUM(CASE WHEN dq.Data_Quality_Result = 'Failure' THEN 1 ELSE 0 END) AS Failure_Count, SUM(CASE WHEN dq.Data_Quality_Result = 'Warning' THEN 1 ELSE 0 END) AS Warning_Count, SUM(dq.Rows_Quarantined) AS Total_Rows_Quarantined FROM Data_Quality_Notifications dq JOIN Date_Dimension d ON dq.Date_Key = d.Date_Key WHERE d.`Date` >= current_timestamp() - INTERVAL {args.days} DAY GROUP BY dq.Table_ID, dq.Table_Name, dq.Datastore_Name ORDER BY Total_Notifications DESC LIMIT {args.top};"""
     if args.query_type == "DQByLogId":
         return get_dq_by_log_id_sql(args.log_id)
     if args.query_type == "ActivityLogsByLogId":
@@ -185,9 +210,9 @@ def get_single_query_sql(args: argparse.Namespace) -> str | None:
     if args.query_type == "SchemaChanges":
         return f"""SELECT Change_Type, Column_Name, Data_Type_Details, Schema_Arrival_Time FROM Schema_Changes WHERE Table_ID = {args.table_id} ORDER BY Schema_Arrival_Time DESC;"""
     if args.query_type == "SchemaDetails":
-        return f"EXEC dbo.Get_Schema_Details @table_id = {args.table_id};"
+        return f"CALL metadata.Get_Schema_Details({args.table_id});"
     if args.query_type == "ProfileSummary":
-        return f"""SELECT Table_Name, Column_Name, Data_Type, Total_Rows, Approx_Distinct_Values, Null_Count, Null_Percent, Mean, Std_Dev, [Min], [Max], Data_Profile_Execution_Time, Table_Last_Modified_Time FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {args.table_id} AND Data_Profile_Execution_Time = (SELECT MAX(Data_Profile_Execution_Time) FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {args.table_id}) ORDER BY Column_Name;"""
+        return f"""SELECT Table_Name, Column_Name, Data_Type, Total_Rows, Approx_Distinct_Values, Null_Count, Null_Percent, Mean, Std_Dev, `Min`, `Max`, Data_Profile_Execution_Time, Table_Last_Modified_Time FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {args.table_id} AND Data_Profile_Execution_Time = (SELECT MAX(Data_Profile_Execution_Time) FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {args.table_id}) ORDER BY Column_Name;"""
     if args.query_type == "LineageUpstream":
         return f"""SELECT Source_Table_ID, Source_Entity, Source_Datastore, Source_Medallion_Layer, Source_Type, Source_Workspace_Name, Relationship_Type, Transformation_Applied, Lineage_Depth, Lineage_Path, Source_Lineage_Narrative FROM Data_Pipeline_Lineage WHERE Target_Table_ID = {args.table_id} ORDER BY Lineage_Depth ASC;"""
     if args.query_type == "LineageDownstream":
@@ -209,8 +234,8 @@ def get_single_query_sql(args: argparse.Namespace) -> str | None:
 
 def get_full_health_queries(table_id: int) -> dict[str, str]:
     return {
-        "RunStatus": f"SELECT TOP 5 Log_ID, Target_Entity, Ingestion_Status, Processing_Phase, Records_Processed, Quarantined_Records, DATEDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Ingestion_Start_Time FROM Data_Pipeline_Logs WHERE Table_ID = {table_id} ORDER BY Ingestion_End_Time DESC;",
-        "DQSummary": f"SELECT TOP 10 Data_Quality_Category, Data_Quality_Result, Data_Quality_Message, Rows_Impacted, Rows_Quarantined, Ingestion_Start_Time FROM Data_Quality_Notifications WHERE Table_ID = {table_id} ORDER BY Ingestion_Start_Time DESC;",
+        "RunStatus": f"SELECT Log_ID, Target_Entity, Ingestion_Status, Processing_Phase, Records_Processed, Quarantined_Records, TIMESTAMPDIFF(SECOND, Ingestion_Start_Time, Ingestion_End_Time) AS Duration_Seconds, Ingestion_Start_Time FROM Data_Pipeline_Logs WHERE Table_ID = {table_id} ORDER BY Ingestion_End_Time DESC LIMIT 5;",
+        "DQSummary": f"SELECT Data_Quality_Category, Data_Quality_Result, Data_Quality_Message, Rows_Impacted, Rows_Quarantined, Ingestion_Start_Time FROM Data_Quality_Notifications WHERE Table_ID = {table_id} ORDER BY Ingestion_Start_Time DESC LIMIT 10;",
         "SchemaChanges": f"SELECT Change_Type, Column_Name, Data_Type_Details, Schema_Arrival_Time FROM Schema_Changes WHERE Table_ID = {table_id} ORDER BY Schema_Arrival_Time DESC;",
         "ProfileSummary": f"SELECT Column_Name, Data_Type, Null_Percent, Approx_Distinct_Values, Total_Rows, Data_Profile_Execution_Time FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {table_id} AND Data_Profile_Execution_Time = (SELECT MAX(Data_Profile_Execution_Time) FROM Exploratory_Data_Analysis_Results WHERE Table_ID = {table_id}) ORDER BY Column_Name;",
     }
@@ -247,11 +272,11 @@ def main() -> int:
         parsed_table_ids = parse_table_ids_csv(args.table_ids)
         if args.query_type == "FullHealth":
             result = {
-                section: execute_sql_query(resolution.metadata_warehouse_id, sql).rows
+                section: _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, sql).rows
                 for section, sql in get_full_health_queries(args.table_id).items()
             }
         elif args.query_type == "RunOutcomeWithDQ":
-            run_rows = execute_sql_query(
+            run_rows = _run_query(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 get_run_by_execution_sql(args),
@@ -260,7 +285,7 @@ def main() -> int:
             dq_rows: list[dict[str, object]] = []
             if log_ids:
                 dq_queries = [(f"dq_{index}", get_dq_by_log_id_sql(log_id)) for index, log_id in enumerate(log_ids)]
-                dq_result_sets = execute_sql_queries(
+                dq_result_sets = _run_queries(
                     resolution.metadata_warehouse_id,
                     resolution.metadata_database_name,
                     dq_queries,
@@ -272,7 +297,7 @@ def main() -> int:
                 "DQRows": dq_rows,
             }
         elif args.query_type == "LatestRunWithDQByTable":
-            candidate_run_rows = execute_sql_query(
+            candidate_run_rows = _run_query(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 get_recent_runs_sql(args.table_id, args.top, args.days),
@@ -280,7 +305,7 @@ def main() -> int:
             selected_run_row = choose_latest_run_row(candidate_run_rows)
             dq_rows: list[dict[str, object]] = []
             if selected_run_row and selected_run_row.get("Log_ID"):
-                dq_rows = execute_sql_query(
+                dq_rows = _run_query(
                     resolution.metadata_warehouse_id,
                     resolution.metadata_database_name,
                     get_dq_by_log_id_sql(str(selected_run_row["Log_ID"])),
@@ -290,7 +315,7 @@ def main() -> int:
                 "DQRows": dq_rows,
             }
         elif args.query_type == "LatestRunWithDQByTrigger":
-            run_rows = execute_sql_query(
+            run_rows = _run_query(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 get_latest_run_by_trigger_sql(args.trigger_name, parsed_table_ids, args.days),
@@ -299,7 +324,7 @@ def main() -> int:
             log_ids = list(dict.fromkeys(str(row["Log_ID"]) for row in run_rows if row.get("Log_ID")))
             if log_ids:
                 dq_queries = [(f"dq_{index}", get_dq_by_log_id_sql(log_id)) for index, log_id in enumerate(log_ids)]
-                dq_result_sets = execute_sql_queries(
+                dq_result_sets = _run_queries(
                     resolution.metadata_warehouse_id,
                     resolution.metadata_database_name,
                     dq_queries,
@@ -313,7 +338,7 @@ def main() -> int:
                 "DQRows": dq_rows,
             }
         elif args.query_type == "ActivityLogsByExecution":
-            run_rows = execute_sql_query(
+            run_rows = _run_query(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 get_run_by_execution_sql(args),
@@ -325,7 +350,7 @@ def main() -> int:
                     (f"activity_logs_{index}", get_activity_logs_by_log_id_sql(log_id))
                     for index, log_id in enumerate(log_ids)
                 ]
-                activity_result_sets = execute_sql_queries(
+                activity_result_sets = _run_queries(
                     resolution.metadata_warehouse_id,
                     resolution.metadata_database_name,
                     activity_queries,
@@ -336,7 +361,7 @@ def main() -> int:
                 # Data_Pipeline_Logs has no rows for this execution (pipeline failed before
                 # logging "Started"). Fall back to Activity_Run_Logs by Table_ID so orphaned
                 # entries written by the pipeline's error-logging SP are still surfaced.
-                activity_log_rows = execute_sql_query(
+                activity_log_rows = _run_query(
                     resolution.metadata_warehouse_id,
                     resolution.metadata_database_name,
                     get_activity_logs_by_table_id_sql(args.table_id, args.hours),
@@ -351,7 +376,7 @@ def main() -> int:
                 ("PrimaryConfig", f"SELECT Table_ID, Configuration_Category, Configuration_Name, Configuration_Value FROM Data_Pipeline_Metadata_Primary_Configuration WHERE Table_ID = {args.table_id} ORDER BY Configuration_Category, Configuration_Name;"),
                 ("AdvancedConfig", f"SELECT Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value FROM Data_Pipeline_Metadata_Advanced_Configuration WHERE Table_ID = {args.table_id} ORDER BY Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name;"),
             ]
-            metadata_result_sets = execute_sql_queries(
+            metadata_result_sets = _run_queries(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 metadata_queries,
@@ -366,7 +391,7 @@ def main() -> int:
             stale_filter = (
                 f"WHERE Table_ID = {args.table_id} "
                 f"AND Log_ID IN ({stale_subquery}) "
-                f"AND Ingestion_Start_Time > DATEADD(HOUR, -{args.hours}, GETUTCDATE())"
+                f"AND Ingestion_Start_Time > current_timestamp() - INTERVAL {args.hours} HOUR"
             )
             if args.resolve or args.delete:
                 # Find the distinct stale Log_IDs that need a 'Failed' row inserted
@@ -376,30 +401,30 @@ def main() -> int:
                     f"AND Processing_Phase = 'Staging' AND Ingestion_Status = 'Started' "
                     f"ORDER BY Ingestion_Start_Time DESC;"
                 )
-                stale_rows = execute_sql_query(resolution.metadata_warehouse_id, select_sql).rows
+                stale_rows = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, select_sql).rows
                 if not stale_rows:
                     result = {"resolved": 0, "rows": []}
                 else:
                     # Insert a 'Failed' row for each stale Log_ID to clear the FIFO block
                     insert_sql = (
                         f"INSERT INTO Data_Pipeline_Logs (Log_ID, Table_ID, Processing_Phase, Ingestion_Status, Ingestion_Start_Time, Ingestion_End_Time) "
-                        f"SELECT DISTINCT Log_ID, Table_ID, 'Staging', 'Failed', Ingestion_Start_Time, GETUTCDATE() "
+                        f"SELECT DISTINCT Log_ID, Table_ID, 'Staging', 'Failed', Ingestion_Start_Time, current_timestamp() "
                         f"FROM Data_Pipeline_Logs "
                         f"{stale_filter} "
                         f"AND Processing_Phase = 'Staging' AND Ingestion_Status = 'Started';"
                     )
-                    execute_sql_query(resolution.metadata_warehouse_id, insert_sql)
+                    _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, insert_sql)
                     result = {"resolved": len(stale_rows), "rows": stale_rows}
             else:
                 select_sql = f"SELECT Log_ID, Table_ID, Processing_Phase, Ingestion_Status, Ingestion_Start_Time, Ingestion_End_Time, Records_Processed FROM Data_Pipeline_Logs {stale_filter} ORDER BY Ingestion_Start_Time DESC;"
-                result = execute_sql_query(resolution.metadata_warehouse_id, select_sql).rows
+                result = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, select_sql).rows
         elif args.query_type == "ResetWatermark":
             # Support single table (--table-id), multiple tables (--table-ids), or full trigger (--trigger-name)
             if args.trigger_name and not args.table_id and not args.table_ids:
                 # Get all table IDs for the trigger
                 escaped_trigger = sql_string_literal(args.trigger_name)
                 trigger_sql = f"SELECT Table_ID, Target_Datastore FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = '{escaped_trigger}' ORDER BY Table_ID;"
-                trigger_rows = execute_sql_query(resolution.metadata_warehouse_id, trigger_sql).rows
+                trigger_rows = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, trigger_sql).rows
                 if not trigger_rows:
                     raise AgentError(f"No orchestration rows found for Trigger_Name '{args.trigger_name}'.")
                 table_entries = [(row["Table_ID"], row["Target_Datastore"]) for row in trigger_rows]
@@ -407,11 +432,11 @@ def main() -> int:
                 # Multiple table IDs provided
                 ids_csv = ", ".join(str(t) for t in parsed_table_ids)
                 orch_sql = f"SELECT Table_ID, Target_Datastore FROM Data_Pipeline_Metadata_Orchestration WHERE Table_ID IN ({ids_csv}) ORDER BY Table_ID;"
-                orch_rows = execute_sql_query(resolution.metadata_warehouse_id, orch_sql).rows
+                orch_rows = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, orch_sql).rows
                 table_entries = [(row["Table_ID"], row["Target_Datastore"]) for row in orch_rows]
             elif args.table_id is not None:
                 orch_sql = f"SELECT Target_Datastore FROM Data_Pipeline_Metadata_Orchestration WHERE Table_ID = {args.table_id};"
-                orch_rows = execute_sql_query(resolution.metadata_warehouse_id, orch_sql).rows
+                orch_rows = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, orch_sql).rows
                 if not orch_rows:
                     raise AgentError(f"No orchestration row found for Table_ID {args.table_id}.")
                 table_entries = [(args.table_id, orch_rows[0]["Target_Datastore"])]
@@ -421,7 +446,7 @@ def main() -> int:
             if args.resolve:
                 # Batch insert all FULL_RELOAD records in one statement
                 values_clauses = ", ".join(
-                    f"(NEWID(), {tid}, '{sql_string_literal(ds)}', GETUTCDATE(), 'Processed', 'FULL_RELOAD')"
+                    f"(uuid(), {tid}, '{sql_string_literal(ds)}', current_timestamp(), 'Processed', 'FULL_RELOAD')"
                     for tid, ds in table_entries
                 )
                 insert_sql = (
@@ -429,7 +454,7 @@ def main() -> int:
                     f"(Log_ID, Table_ID, Target_Datastore, Ingestion_End_Time, Ingestion_Status, Watermark_Value) "
                     f"VALUES {values_clauses};"
                 )
-                execute_sql_query(resolution.metadata_warehouse_id, insert_sql)
+                _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, insert_sql)
                 result = {
                     "reset": True,
                     "count": len(table_entries),
@@ -448,7 +473,7 @@ def main() -> int:
                     f"SELECT o.Table_ID, o.Target_Entity, o.Target_Datastore, o.Ingestion_Active, "
                     f"l.Ingestion_Status AS Last_Status, l.Records_Processed AS Last_Records, "
                     f"l.Ingestion_End_Time AS Last_Run_Time, l.Watermark_Value AS Current_Watermark, "
-                    f"DATEDIFF(SECOND, l.Ingestion_Start_Time, l.Ingestion_End_Time) AS Last_Duration_Seconds "
+                    f"TIMESTAMPDIFF(SECOND, l.Ingestion_Start_Time, l.Ingestion_End_Time) AS Last_Duration_Seconds "
                     f"FROM Data_Pipeline_Metadata_Orchestration o "
                     f"LEFT JOIN ( SELECT Table_ID, Ingestion_Status, Records_Processed, Ingestion_Start_Time, Ingestion_End_Time, Watermark_Value, "
                     f"ROW_NUMBER() OVER (PARTITION BY Table_ID ORDER BY Ingestion_End_Time DESC) AS rn "
@@ -458,7 +483,7 @@ def main() -> int:
                     f"ORDER BY o.Order_Of_Operations, o.Table_ID;"
                 )),
             ]
-            overview_result_sets = execute_sql_queries(
+            overview_result_sets = _run_queries(
                 resolution.metadata_warehouse_id,
                 resolution.metadata_database_name,
                 overview_queries,
@@ -468,7 +493,7 @@ def main() -> int:
             sql = get_single_query_sql(args)
             if sql is None:
                 raise AgentError(f"Unsupported query type: {args.query_type}")
-            result = execute_sql_query(resolution.metadata_warehouse_id, sql).rows
+            result = _run_query(resolution.metadata_warehouse_id, resolution.metadata_database_name, sql).rows
     except AgentError as exc:
         print(str(exc), file=sys.stderr)
         return 1

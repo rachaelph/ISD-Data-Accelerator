@@ -25,6 +25,8 @@
 --     datastore_<ENV>.json (metadata.catalog / metadata.schema) before
 --     executing this file, so bare table names resolve automatically.
 --   - All three tables use overwrite merge semantics (full reload each run)
+--   - All three tables leave Primary_Keys blank because the sample CSVs do
+--     not expose a stable business key suitable for merge semantics
 --   - watermark_details.data_type = datetime is set for framework defaults
 --     even though merge_type=overwrite does not consume a watermark
 -- =====================================================================
@@ -46,9 +48,9 @@ WHERE Trigger_Name = 'daily_load';
 -- =====================================================================
 INSERT INTO Data_Pipeline_Metadata_Orchestration (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
-('daily_load', 1, 1001, 'silver', 'housing_price', 'MedInc', 'batch', 1),
-('daily_load', 2, 1002, 'silver', 'london_taxi', 'distance,pickup_latitude,pickup_longitude', 'batch', 1),
-('daily_load', 3, 1003, 'silver', 'nyc_taxi', 'distance,pickup_latitude,pickup_longitude', 'batch', 1);
+('daily_load', 1, 1001, 'silver', 'housing_price', '', 'batch', 1),
+('daily_load', 2, 1002, 'silver', 'london_taxi', '', 'batch', 1),
+('daily_load', 3, 1003, 'silver', 'nyc_taxi', '', 'batch', 1);
 
 -- =====================================================================
 -- STEP 3: Primary Configuration

@@ -147,7 +147,7 @@ The application logging framework complements the structured pipeline logging st
 - **Activity Run Logs** (via `Activity_Run_Logs` table): Structured step-by-step messages persisted for notebook-based and pipeline-based runs
 - **Data Quality Logs** (via `Data_Quality_Notifications` table): Specific data quality violations and remediation actions
 
-> **Note:** For batch processing, `batch_processing.py` writes directly to `Data_Pipeline_Logs` and `Schema_Logs` via pyodbc, and persists structured step-level messages to `Activity_Run_Logs` (using `log_data_movement()`, `log_new_schema()`, and `persist_run_log_entries()`). For non-batch processing methods routed through `Non-Framework Method Executor`, logging is performed by pipeline Script activities calling the `Log_Data_Movement` stored procedure.
+> **Note:** For batch processing, `batch_processing.py` writes directly to `Data_Pipeline_Logs` and `Schema_Logs`, and appends structured step-level messages straight to the Delta-backed `Activity_Run_Logs` table (using `log_data_movement()`, `log_new_schema()`, and `persist_run_log_entries()`). For non-batch processing methods routed through `Non-Framework Method Executor`, logging is performed by pipeline Script activities calling the `Log_Data_Movement` stored procedure.
 
 Together, these provide comprehensive observability across the entire data processing pipeline.
 
