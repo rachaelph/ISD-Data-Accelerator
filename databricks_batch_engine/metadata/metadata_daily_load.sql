@@ -56,21 +56,21 @@ VALUES
 INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
 -- Table_ID 1001: housing_price.csv -> silver.silver.housing_price
-(1001, 'source_details', 'wildcard_folder_path', 'housing_price.csv'),
+(1001, 'source_details', 'wildcard_folder_path', 'raw_files/housing_price.csv'),
 (1001, 'source_details', 'datastore_name', 'bronze'),
 (1001, 'source_details', 'source', 'file'),
 (1001, 'source_details', 'file_extension', 'csv'),
 (1001, 'target_details', 'merge_type', 'overwrite'),
 (1001, 'watermark_details', 'data_type', 'datetime'),
 -- Table_ID 1002: london_taxi.csv -> silver.silver.london_taxi
-(1002, 'source_details', 'wildcard_folder_path', 'london_taxi.csv'),
+(1002, 'source_details', 'wildcard_folder_path', 'raw_files/london_taxi.csv'),
 (1002, 'source_details', 'datastore_name', 'bronze'),
 (1002, 'source_details', 'source', 'file'),
 (1002, 'source_details', 'file_extension', 'csv'),
 (1002, 'target_details', 'merge_type', 'overwrite'),
 (1002, 'watermark_details', 'data_type', 'datetime'),
 -- Table_ID 1003: nyc_taxi.csv -> silver.silver.nyc_taxi
-(1003, 'source_details', 'wildcard_folder_path', 'nyc_taxi.csv'),
+(1003, 'source_details', 'wildcard_folder_path', 'raw_files/nyc_taxi.csv'),
 (1003, 'source_details', 'datastore_name', 'bronze'),
 (1003, 'source_details', 'source', 'file'),
 (1003, 'source_details', 'file_extension', 'csv'),

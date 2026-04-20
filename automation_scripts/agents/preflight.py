@@ -176,7 +176,27 @@ def check_pwsh() -> dict[str, Any]:
             "details": (version_result.stderr or version_result.stdout).strip(),
         }
     version = version_result.stdout.strip()
-    return {"status": "ok", "path": pwsh_path, "version": version}
+    result: dict[str, Any] = {"status": "ok", "path": pwsh_path, "version": version}
+
+    # Detect when the CURRENT shell is Windows PowerShell 5.1 even though pwsh 7 is installed.
+    # This happens when VS Code's default terminal profile is not set to PowerShell 7.
+    # Signal: PSModulePath includes 'WindowsPowerShell\v1.0' AND does not include 'PowerShell\7'.
+    if sys.platform == "win32":
+        ps_module_path = os.environ.get("PSModulePath", "")
+        looks_like_ps5 = (
+            "WindowsPowerShell\\v1.0" in ps_module_path
+            and "PowerShell\\7" not in ps_module_path
+            and "Modules" in ps_module_path
+        )
+        if looks_like_ps5:
+            result["status"] = "wrong-shell"
+            result["hint"] = (
+                "The current terminal appears to be Windows PowerShell 5.1. "
+                "Close it and open a new terminal — the workspace '.vscode/settings.json' "
+                "sets PowerShell 7 as the default profile. If the new terminal is still 5.1, "
+                "open the VS Code command palette -> 'Terminal: Select Default Profile' -> 'PowerShell 7'."
+            )
+    return result
 
 
 def check_python_version() -> dict[str, Any]:

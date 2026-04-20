@@ -19,9 +19,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from databricks.sdk.service.compute import Environment
 from databricks.sdk.service.jobs import (
+    JobEnvironment,
+    NotebookTask,
     RunLifeCycleState,
     RunResultState,
+    SubmitTask,
 )
 
 # Allow direct script execution to find utils/databricks_agent_utils.py
@@ -196,7 +200,12 @@ def find_table_metadata(metadata_dir: Path, table_id: int) -> TableMetadata:
         r"(?:'[^']*'|NULL)\s*,\s*'(?P<processing_method>[^']*)'\s*,\s*(?P<active>[01])\s*\)"
     )
     matches: list[TableMetadata] = []
-    for sql_path in metadata_dir.rglob("notebook-content.sql"):
+    sql_paths = list(metadata_dir.rglob("*.sql")) + list(metadata_dir.rglob("notebook-content.sql"))
+    seen: set[Path] = set()
+    for sql_path in sql_paths:
+        if sql_path in seen:
+            continue
+        seen.add(sql_path)
         sql_text = sql_path.read_text(encoding="utf-8")
         for match in pattern.finditer(sql_text):
             if int(match.group("table_id")) != table_id:
@@ -225,11 +234,11 @@ def find_table_metadata(metadata_dir: Path, table_id: int) -> TableMetadata:
 # Context resolution
 # ---------------------------------------------------------------------------
 def resolve_run_context(args: argparse.Namespace) -> tuple[dict[str, Any], TableMetadata | None, str]:
+    # Only the warehouse + metadata DB are universally required. Job vs jobless
+    # submit variables are validated later once we know the execution mode.
     required_variables = [
         "sql_warehouse_id",
         "metadata_database",
-        "job_id_batch_processing",
-        "orchestration_job_name",
     ]
     execution_context = resolve_execution_context(
         source_directory=args.source_directory,
@@ -238,7 +247,16 @@ def resolve_run_context(args: argparse.Namespace) -> tuple[dict[str, Any], Table
     )
     table_metadata: TableMetadata | None = None
     if args.table_id > 0:
-        metadata_dir = Path(execution_context["GitFolderPath"]) / "metadata"
+        engine_folder_path = (
+            execution_context.get("GitFolderPath")
+            or execution_context.get("EngineFolderPath")
+        )
+        if not engine_folder_path:
+            raise AgentError(
+                "Unable to resolve a metadata directory: neither GitFolderPath nor EngineFolderPath is set "
+                "in the execution context."
+            )
+        metadata_dir = Path(engine_folder_path) / "metadata"
         table_metadata = find_table_metadata(metadata_dir, args.table_id)
 
     if not args.trigger_name and table_metadata is None:
@@ -272,13 +290,25 @@ def main() -> int:
         execution_context, table_metadata, trigger_name = resolve_run_context(args)
         variables = execution_context["Variables"]
         processing_method = (table_metadata.processing_method if table_metadata else "pipeline").strip().lower()
-        is_notebook_mode = bool(
+        is_single_batch_table = bool(
             table_metadata
             and args.table_id > 0
             and processing_method == "batch"
             and not args.table_ids
         )
-        execution_mode = "Notebook" if is_notebook_mode else "Job"
+        # Three execution paths:
+        #   - JoblessNotebook: single batch table + batch_processing_notebook_path configured
+        #                      (preferred; no Databricks Job required)
+        #   - Notebook:        single batch table + legacy job_id_batch_processing configured
+        #   - Job:             trigger-wide runs via orchestration Job
+        notebook_path = variables.get("batch_processing_notebook_path")
+        legacy_job_id = variables.get("job_id_batch_processing")
+        if is_single_batch_table and notebook_path:
+            execution_mode = "JoblessNotebook"
+        elif is_single_batch_table and legacy_job_id:
+            execution_mode = "Notebook"
+        else:
+            execution_mode = "Job"
 
         result["executionMode"] = execution_mode
         result["branchName"] = execution_context["BranchName"]
@@ -289,7 +319,8 @@ def main() -> int:
             "gitFolderName": execution_context["GitFolderName"],
             "gitFolderPath": execution_context["GitFolderPath"],
             "sqlWarehouseId": variables["sql_warehouse_id"],
-            "jobIdBatchProcessing": variables["job_id_batch_processing"],
+            "jobIdBatchProcessing": legacy_job_id,
+            "batchProcessingNotebookPath": notebook_path,
         }
         if table_metadata is not None:
             result["tableMetadata"] = asdict(table_metadata)
@@ -298,9 +329,86 @@ def main() -> int:
         host = client.config.host or ""
         trigger_execution_id = str(uuid.uuid4())
 
-        if execution_mode == "Notebook":
+        if execution_mode == "JoblessNotebook":
             assert table_metadata is not None
-            job_id = int(variables["job_id_batch_processing"])
+            cluster_id = variables.get("existing_cluster_id")
+            use_serverless = (
+                str(variables.get("use_serverless", "")).lower() in {"1", "true", "yes"}
+                or (cluster_id or "").lower() == "serverless"
+                or not cluster_id
+            )
+            trigger_step = args.trigger_step or table_metadata.order_of_operations
+            metadata_catalog = variables["metadata_catalog"]
+            metadata_schema = variables["metadata_schema"]
+            # The notebook widget is named 'metadata_catalog_name' but is used as the
+            # fully-qualified namespace (catalog.schema) — the SQL helpers prepend it to
+            # every `dbo.X` reference. See DatabricksSqlCursor._qualify_legacy_sql.
+            metadata_namespace = f"{metadata_catalog}.{metadata_schema}"
+            base_parameters = {
+                "sql_warehouse_id": variables["sql_warehouse_id"],
+                "metadata_database": variables["metadata_database"],
+                "metadata_catalog_name": metadata_namespace,
+                "table_id": str(table_metadata.table_id),
+                "trigger_name": table_metadata.trigger_name,
+                "trigger_step": str(trigger_step),
+                "trigger_execution_id": trigger_execution_id,
+                "trigger_execution_time": result["triggerExecutionTime"],
+                "trigger_execution_start_time": result["triggerExecutionTime"],
+                "target_datastore": table_metadata.target_datastore,
+                "target_entity": table_metadata.target_entity,
+                "event_payload": args.event_payload,
+                "folder_path_from_trigger": args.folder_path_from_trigger,
+            }
+            if use_serverless:
+                task = SubmitTask(
+                    task_key="batch_processing_onetime",
+                    environment_key="default",
+                    notebook_task=NotebookTask(
+                        notebook_path=notebook_path,
+                        base_parameters=base_parameters,
+                    ),
+                )
+                environments = [
+                    JobEnvironment(
+                        environment_key="default",
+                        spec=Environment(client="1"),
+                    )
+                ]
+                run_response = client.jobs.submit(
+                    run_name=f"fdp-05-run-{table_metadata.trigger_name}-{table_metadata.table_id}-{trigger_execution_id[:8]}",
+                    tasks=[task],
+                    environments=environments,
+                )
+                compute_label = "serverless"
+            else:
+                task = SubmitTask(
+                    task_key="batch_processing_onetime",
+                    existing_cluster_id=cluster_id,
+                    notebook_task=NotebookTask(
+                        notebook_path=notebook_path,
+                        base_parameters=base_parameters,
+                    ),
+                )
+                run_response = client.jobs.submit(
+                    run_name=f"fdp-05-run-{table_metadata.trigger_name}-{table_metadata.table_id}-{trigger_execution_id[:8]}",
+                    tasks=[task],
+                )
+                compute_label = cluster_id
+            run_id = run_response.run_id
+            job_id = None
+            result["databricksRunUrl"] = build_job_run_url(host, run_id)
+            result["parameters"] = {
+                "table_id": table_metadata.table_id,
+                "trigger_name": table_metadata.trigger_name,
+                "trigger_step": trigger_step,
+                "target_datastore": table_metadata.target_datastore,
+                "target_entity": table_metadata.target_entity,
+                "compute": compute_label,
+                "notebook_path": notebook_path,
+            }
+        elif execution_mode == "Notebook":
+            assert table_metadata is not None
+            job_id = int(legacy_job_id)
             trigger_step = args.trigger_step or table_metadata.order_of_operations
             job_parameters = {
                 "sql_warehouse_id": variables["sql_warehouse_id"],
@@ -329,7 +437,12 @@ def main() -> int:
                 "target_entity": table_metadata.target_entity,
             }
         else:
-            job_name = variables.get("orchestration_job_name", JOB_NAME)
+            orchestration_job_name = variables.get("orchestration_job_name", JOB_NAME)
+            if not orchestration_job_name:
+                raise AgentError(
+                    "Job mode requires 'orchestration_job_name' in the datastore config 'variables' block."
+                )
+            job_name = orchestration_job_name
             job_id = discover_job_id(job_name)
             start_with_step = args.start_with_step or args.trigger_step or 0
             table_ids = args.table_ids or (str(args.table_id) if args.table_id > 0 else "0")
@@ -374,7 +487,40 @@ def main() -> int:
             state_message = ""
             if run_obj and hasattr(run_obj, "state") and run_obj.state:
                 state_message = run_obj.state.state_message or ""
-            result["errorMessage"] = state_message or "Databricks job execution failed."
+            # Fetch task-level output for the real notebook error + traceback.
+            task_error: str | None = None
+            task_error_trace: str | None = None
+            task_logs_tail: str | None = None
+            try:
+                tasks = getattr(run_obj, "tasks", None) if run_obj else None
+                if tasks:
+                    for task in tasks:
+                        task_run_id = getattr(task, "run_id", None)
+                        if not task_run_id:
+                            continue
+                        try:
+                            output = client.jobs.get_run_output(run_id=task_run_id)
+                        except Exception:  # pragma: no cover - best-effort
+                            continue
+                        task_error = task_error or getattr(output, "error", None)
+                        task_error_trace = task_error_trace or getattr(output, "error_trace", None)
+                        logs = getattr(output, "logs", None)
+                        if logs and not task_logs_tail:
+                            task_logs_tail = logs[-4000:]
+                        if task_error:
+                            break
+            except Exception:  # pragma: no cover - best-effort enrichment
+                pass
+            if task_error:
+                result["errorMessage"] = task_error
+            else:
+                result["errorMessage"] = state_message or "Databricks job execution failed."
+            if task_error_trace:
+                result["errorTrace"] = task_error_trace
+            if task_logs_tail:
+                result["taskLogsTail"] = task_logs_tail
+            if state_message and task_error and state_message != task_error:
+                result["stateMessage"] = state_message
         elif status == "Cancelled":
             result["executionStatus"] = "Cancelled"
             result["errorMessage"] = "Databricks job execution was cancelled."

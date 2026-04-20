@@ -64,7 +64,7 @@ class GetDatastoreConfigValuesTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             payload = json.loads(result.stdout)
             self.assertEqual(payload["variables"]["sql_warehouse_id"], "wh-abc123")
-            self.assertEqual(payload["variables"]["metadata_database"], "my_catalog.metadata")
+            self.assertEqual(payload["variables"]["metadata_database"], "metadata")
             self.assertIn("datastore_DEV.json", payload["configPath"])
 
     def test_reads_extra_variables_block(self) -> None:

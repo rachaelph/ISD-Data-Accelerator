@@ -922,7 +922,7 @@ def _build_variables_from_datastore(config: DatastoreConfig) -> dict[str, str]:
         "sql_warehouse_id": config.sql_warehouse_id,
         "metadata_catalog": config.metadata_catalog,
         "metadata_schema": config.metadata_schema,
-        "metadata_database": f"{config.metadata_catalog}.{config.metadata_schema}",
+        "metadata_database": config.metadata_schema,
         "metadata_sql_warehouse_id": config.metadata_sql_warehouse_id,
         "workspace_id": config.workspace_id,
         "workspace_url": config.workspace_url,

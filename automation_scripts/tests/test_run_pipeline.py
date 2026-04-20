@@ -133,7 +133,7 @@ class RunPipelineTests(unittest.TestCase):
             "OverrideStatusMessage": "Using base workspace values (no feature overrides active)",
             "Variables": {
                 "sql_warehouse_id": "wh-123",
-                "metadata_database": "accelerator.metadata",
+                "metadata_database": "metadata",
                 "job_id_batch_processing": "456",
                 "orchestration_job_name": "batch_orchestration",
             },

@@ -67,7 +67,7 @@ class ResolveExecutionContextTests(unittest.TestCase):
             self.assertEqual(payload["EngineFolderName"], "databricks_batch_engine")
             self.assertIsNone(payload["GitFolderName"])
             self.assertEqual(payload["Variables"]["sql_warehouse_id"], "wh-abc123")
-            self.assertEqual(payload["Variables"]["metadata_database"], "my_catalog.metadata")
+            self.assertEqual(payload["Variables"]["metadata_database"], "metadata")
             self.assertEqual(payload["Variables"]["metadata_catalog"], "my_catalog")
             self.assertEqual(payload["Variables"]["metadata_schema"], "metadata")
             self.assertFalse(payload["HasOverrides"])

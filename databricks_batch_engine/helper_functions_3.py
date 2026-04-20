@@ -4355,13 +4355,20 @@ def _get_databricks_schema(datastore_config: str | list | dict, datastore_name: 
 
 
 def _resolve_volume_root(datastore_config: str | list | dict, datastore_name: str) -> str:
+    """Return ``/Volumes/{catalog}/{schema}`` for the given datastore.
+
+    The volume name (and any subfolder) comes from the metadata path
+    (``wildcard_folder_path`` / ``source_folder_path`` / ``target_folder_path``),
+    so this root deliberately stops at the schema. If the datastore entry
+    supplies an explicit ``Endpoint`` (e.g. an ABFSS URL), that wins.
+    """
     configured_root = _get_datastore_config(datastore_config, datastore_name, "Endpoint").strip()
     if configured_root:
         return configured_root.rstrip("/")
 
     catalog = _get_databricks_catalog(datastore_config, datastore_name)
     schema_name = _get_databricks_schema(datastore_config, datastore_name)
-    return f"/Volumes/{catalog}/{schema_name}/{datastore_name.strip().lower()}"
+    return f"/Volumes/{catalog}/{schema_name}"
 
 
 def _resolve_volume_path(volume_root: str, configured_path: str | None) -> str | None:
