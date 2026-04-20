@@ -76,3 +76,22 @@ VALUES
 (1003, 'source_details', 'file_extension', 'csv'),
 (1003, 'target_details', 'merge_type', 'overwrite'),
 (1003, 'watermark_details', 'data_type', 'datetime');
+
+-- =====================================================================
+-- STEP 4: Advanced Configuration - Data Transformation Steps
+-- Added for Table_ID 1003 (nyc_taxi):
+--   - Dedup on trip_id (requested)
+--   - Mask hack_license as PII (requested)
+-- NOTE: the current sample_data/nyc_taxi.csv does NOT include trip_id or
+-- hack_license columns. These transformations assume an upstream CSV
+-- schema that contains both. Update the sample or source feed before run.
+-- =====================================================================
+INSERT INTO Data_Pipeline_Metadata_Advanced_Configuration
+(Table_ID, Configuration_Category, Configuration_Name, Configuration_Name_Instance_Number, Configuration_Attribute_Name, Configuration_Attribute_Value)
+VALUES
+(1003, 'data_transformation_steps', 'drop_duplicates', 1, 'column_name', 'trip_id'),
+(1003, 'data_transformation_steps', 'mask_sensitive_data', 2, 'column_name', 'hack_license'),
+(1003, 'data_transformation_steps', 'mask_sensitive_data', 2, 'upper_char', 'X'),
+(1003, 'data_transformation_steps', 'mask_sensitive_data', 2, 'lower_char', 'X'),
+(1003, 'data_transformation_steps', 'mask_sensitive_data', 2, 'digit_char', 'X'),
+(1003, 'data_transformation_steps', 'mask_sensitive_data', 2, 'other_char', 'X');
