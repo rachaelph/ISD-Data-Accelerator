@@ -363,14 +363,15 @@ def main() -> int:
         log("")
 
         if not args.skip_sync:
-            if args.repo_id:
+            repo_id = args.repo_id or execution_context.get("Variables", {}).get("repo_id")
+            if repo_id:
                 log("Step 4: Syncing Databricks Repo from Git...")
                 branch = execution_context["BranchName"]
-                client.repos.update(repo_id=int(args.repo_id), branch=branch)
-                log(f"   [OK] Repo {args.repo_id} synced to branch '{branch}'")
+                client.repos.update(repo_id=int(repo_id), branch=branch)
+                log(f"   [OK] Repo {repo_id} synced to branch '{branch}'")
                 result["syncStatus"] = "Synced"
             else:
-                log("Step 4: Skipping Databricks Repo sync (no --repo-id provided)")
+                log("Step 4: Skipping Databricks Repo sync (no --repo-id provided or configured)")
                 result["syncStatus"] = "Skipped"
         else:
             log("Step 4: Skipping Databricks Repo sync (--skip-sync)")

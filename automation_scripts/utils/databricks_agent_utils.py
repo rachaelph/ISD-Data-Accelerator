@@ -240,16 +240,45 @@ def execute_sql_queries(
     return results
 
 
+def _strip_sql_comments(statement: str) -> str:
+    """Return the statement with ``--`` line comments and ``/* */`` block comments removed.
+
+    Used to decide whether a split chunk contains any executable SQL. Does not
+    attempt to be SQL-aware about string literals — metadata SQL here does not
+    contain ``--`` inside literals.
+    """
+    # Remove /* ... */ blocks (possibly multi-line, non-greedy).
+    without_blocks = re.sub(r"/\*.*?\*/", "", statement, flags=re.DOTALL)
+    # Remove -- line comments.
+    cleaned_lines = []
+    for line in without_blocks.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("--"):
+            continue
+        # Inline trailing comment after code.
+        if "--" in line:
+            line = line.split("--", 1)[0]
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
 def execute_sql_batch(
     warehouse_id: str,
     sql_text: str,
     catalog: str | None = None,
     schema: str | None = None,
 ) -> None:
-    """Execute multiple semicolon-separated SQL statements (for metadata deployment)."""
+    """Execute multiple semicolon-separated SQL statements (for metadata deployment).
+
+    Skips chunks that only contain comments (``--`` or ``/* */``) so a file's
+    header block does not produce a ``[PARSE_SYNTAX_ERROR]`` from the warehouse.
+    """
     client = get_workspace_client()
     statements = [s.strip() for s in sql_text.split(";") if s.strip()]
     for statement in statements:
+        if not _strip_sql_comments(statement):
+            # Comment-only chunk (e.g. the file header block) — nothing to execute.
+            continue
         response = client.statement_execution.execute_statement(
             warehouse_id=warehouse_id,
             statement=statement,
