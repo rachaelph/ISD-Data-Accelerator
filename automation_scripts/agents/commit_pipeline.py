@@ -112,6 +112,15 @@ def parse_notebook_names(changed_paths: list[str]) -> list[str]:
     return sorted(names)
 
 
+def parse_sql_file_names(change_lines: list[str]) -> list[str]:
+    names: set[str] = set()
+    for change_line in change_lines:
+        for path in extract_git_status_paths(change_line):
+            if path.lower().endswith(".sql"):
+                names.add(Path(path).stem)
+    return sorted(names)
+
+
 def metadata_trigger_from_notebook_name(notebook_name: str) -> str | None:
     normalized_name = normalize_notebook_name(notebook_name)
     if not normalized_name.startswith(METADATA_NOTEBOOK_PREFIX):
@@ -175,6 +184,18 @@ def get_committed_paths(source_directory: Path, git_folder_name: str | None) -> 
     return committed_paths
 
 
+def get_local_change_lines(source_directory: Path, git_folder_name: str | None) -> list[str]:
+    status_cmd = ["git", "status", "--porcelain", "--untracked-files=all"]
+    if git_folder_name:
+        status_cmd += ["--", f"{git_folder_name}/"]
+    local_status = run_command(
+        status_cmd,
+        cwd=source_directory,
+        error_prefix="git status failed",
+    )
+    return [line for line in local_status.stdout.splitlines() if line.strip()]
+
+
 # ---------------------------------------------------------------------------
 # SQL file discovery
 # ---------------------------------------------------------------------------
@@ -223,6 +244,7 @@ def main() -> int:
     }
 
     changed_notebook_names: set[str] = set()
+    changed_sql_file_names: set[str] = set()
     deleted_metadata_trigger_names: set[str] = set()
     has_local_git_folder_changes = False
 
@@ -272,38 +294,41 @@ def main() -> int:
         log("")
 
         source_directory = args.source_directory.resolve()
+        scope_label = f"'{git_folder_name}/'" if git_folder_name else "the repository"
+
+        log("Step 3: Scanning local Git changes for deploy determinism...")
+        local_changes = get_local_change_lines(source_directory, git_folder_name)
+        if not local_changes:
+            log(f"   [INFO] No local file changes in {scope_label}")
+        else:
+            has_local_git_folder_changes = True
+            log(f"   Found {len(local_changes)} local change(s):")
+            for change in local_changes:
+                log(f"     [CHG] {change}")
+
+            local_notebook_names = parse_notebook_names(local_changes)
+            if local_notebook_names:
+                changed_notebook_names.update(local_notebook_names)
+                log(f"   Local notebook changes added to deploy filter: {', '.join(local_notebook_names)}")
+
+            local_sql_file_names = parse_sql_file_names(local_changes)
+            if local_sql_file_names:
+                changed_sql_file_names.update(local_sql_file_names)
+                log(f"   Local SQL file changes added to deploy filter: {', '.join(local_sql_file_names)}")
+
+            local_deleted_trigger_names = parse_deleted_metadata_triggers_from_git_status(local_changes)
+            if local_deleted_trigger_names:
+                deleted_metadata_trigger_names.update(local_deleted_trigger_names)
+                log(f"   Local deleted metadata triggers: {', '.join(local_deleted_trigger_names)}")
+        log("")
+
         if not args.skip_commit:
-            log("Step 3: Checking for local Git changes...")
-            scope_label = f"'{git_folder_name}/'" if git_folder_name else "the repository"
-            status_cmd = ["git", "status", "--porcelain", "--untracked-files=all"]
-            if git_folder_name:
-                status_cmd += ["--", f"{git_folder_name}/"]
-            local_status = run_command(
-                status_cmd,
-                cwd=source_directory,
-                error_prefix="git status failed",
-            )
-            local_changes = [line for line in local_status.stdout.splitlines() if line.strip()]
+            log("Step 4: Checking whether local Git changes need commit/push...")
 
             if not local_changes:
                 log(f"   [INFO] No local file changes in {scope_label} -- skipping local commit")
                 result["localGitStatus"] = "NoChanges"
             else:
-                has_local_git_folder_changes = True
-                log(f"   Found {len(local_changes)} local change(s):")
-                for change in local_changes:
-                    log(f"     [CHG] {change}")
-
-                local_notebook_names = parse_notebook_names(local_changes)
-                if local_notebook_names:
-                    changed_notebook_names.update(local_notebook_names)
-                    log(f"   Local notebook changes added to deploy filter: {', '.join(local_notebook_names)}")
-
-                local_deleted_trigger_names = parse_deleted_metadata_triggers_from_git_status(local_changes)
-                if local_deleted_trigger_names:
-                    deleted_metadata_trigger_names.update(local_deleted_trigger_names)
-                    log(f"   Local deleted metadata triggers: {', '.join(local_deleted_trigger_names)}")
-
                 commit_comment = args.commit_comment or "chore: deploy workspace changes"
                 if git_folder_name:
                     log(f"   Staging all changes under '{git_folder_name}/'...")
@@ -327,6 +352,11 @@ def main() -> int:
                 if committed_notebook_names:
                     changed_notebook_names.update(committed_notebook_names)
                     log(f"   Committed notebook changes added to deploy filter: {', '.join(committed_notebook_names)}")
+
+                committed_sql_file_names = parse_sql_file_names(get_committed_change_lines(source_directory, git_folder_name))
+                if committed_sql_file_names:
+                    changed_sql_file_names.update(committed_sql_file_names)
+                    log(f"   Committed SQL file changes added to deploy filter: {', '.join(committed_sql_file_names)}")
 
                 committed_deleted_trigger_names = parse_deleted_metadata_triggers_from_git_status(
                     get_committed_change_lines(source_directory, git_folder_name)
@@ -359,26 +389,31 @@ def main() -> int:
                 log("   [OK] Local changes committed and pushed to remote")
                 result["localGitStatus"] = "Pushed"
         else:
-            log("Step 3: Skipping local Git commit (--skip-commit)")
+            log("Step 4: Skipping local Git commit (--skip-commit)")
+            if local_changes:
+                result["localGitStatus"] = "SkippedWithLocalChanges"
+                log("   [WARN] Deploy will use local file contents for changed metadata/datastore SQL, but those changes are not committed or synced to the Databricks Repo")
+            else:
+                result["localGitStatus"] = "Skipped"
         log("")
 
         if not args.skip_sync:
             repo_id = args.repo_id or execution_context.get("Variables", {}).get("repo_id")
             if repo_id:
-                log("Step 4: Syncing Databricks Repo from Git...")
+                log("Step 5: Syncing Databricks Repo from Git...")
                 branch = execution_context["BranchName"]
                 client.repos.update(repo_id=int(repo_id), branch=branch)
                 log(f"   [OK] Repo {repo_id} synced to branch '{branch}'")
                 result["syncStatus"] = "Synced"
             else:
-                log("Step 4: Skipping Databricks Repo sync (no --repo-id provided or configured)")
+                log("Step 5: Skipping Databricks Repo sync (no --repo-id provided or configured)")
                 result["syncStatus"] = "Skipped"
         else:
-            log("Step 4: Skipping Databricks Repo sync (--skip-sync)")
+            log("Step 5: Skipping Databricks Repo sync (--skip-sync)")
         log("")
 
         if not args.skip_datastore_sync:
-            log("Step 5: Syncing datastore JSON config to Datastore_Configuration Delta table...")
+            log("Step 6: Syncing datastore JSON config to Datastore_Configuration Delta table...")
             try:
                 datastore_config = load_datastore_config(
                     source_directory=args.source_directory,
@@ -401,18 +436,20 @@ def main() -> int:
             if sync_result["pruned"]:
                 log("   [OK] Pruned rows not present in JSON config")
         else:
-            log("Step 5: Skipping datastore config sync (--skip-datastore-sync)")
+            log("Step 6: Skipping datastore config sync (--skip-datastore-sync)")
         log("")
 
         if not args.skip_metadata_deploy:
-            log("Step 6: Deploying metadata SQL via Statement Execution API...")
+            log("Step 7: Deploying metadata SQL via Statement Execution API...")
             log(f"   SQL Warehouse ID : {sql_warehouse_id}")
             log(f"   Database         : {metadata_database}")
             log("")
 
             sql_files = discover_sql_files(source_directory)
             available_sql_notebook_names = {normalize_notebook_name(sql_file.name) for sql_file in sql_files}
-            changed_sql_notebook_names = sorted(name for name in changed_notebook_names if name in available_sql_notebook_names)
+            changed_sql_notebook_names = sorted(
+                name for name in (changed_notebook_names | changed_sql_file_names) if name in available_sql_notebook_names
+            )
             deleted_metadata_trigger_names_sorted = sorted(deleted_metadata_trigger_names)
 
             if changed_sql_notebook_names:
@@ -500,7 +537,7 @@ def main() -> int:
                     else:
                         log(f"   Success: all {executed_count} SQL file(s) executed successfully")
         else:
-            log("Step 6: Skipping metadata SQL deployment (--skip-metadata-deploy)")
+            log("Step 7: Skipping metadata SQL deployment (--skip-metadata-deploy)")
         log("")
 
     except AgentError as exc:

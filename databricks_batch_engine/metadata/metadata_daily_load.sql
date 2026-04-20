@@ -39,7 +39,7 @@ WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHE
 
 DELETE FROM Data_Pipeline_Metadata_Primary_Configuration
 WHERE Table_ID IN (SELECT Table_ID FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'daily_load');
-
+ 
 DELETE FROM Data_Pipeline_Metadata_Orchestration
 WHERE Trigger_Name = 'daily_load';
 
