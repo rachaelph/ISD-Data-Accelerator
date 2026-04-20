@@ -240,7 +240,7 @@ class DatabricksAgentUtilsTests(unittest.TestCase):
                 repo_root, "DEV", branch="feature/hschwarz/add-sales"
             )
             self.assertEqual(config.active_branch_override, "feature/hschwarz/add-sales")
-            self.assertEqual(config.override_source_path, override_path)
+            self.assertEqual(config.override_source_path.resolve(), override_path.resolve())
             self.assertEqual(config.sql_warehouse_id, "wh-feature-hschwarz")
             # layers only patch catalog; schema never lives here
             self.assertEqual(config.layers["silver"]["catalog"], "dev_silver_feature_hschwarz")

@@ -27,9 +27,9 @@ class InvokeProfileSummaryTests(unittest.TestCase):
             "silver.dbo.oracle_customers",
         )
 
-        self.assertIn("AVG(CAST([cust_id] AS FLOAT))", query)
-        self.assertIn("STDEV(CAST([cust_id] AS FLOAT))", query)
-        self.assertIn("FROM [dbo].[oracle_customers];", query)
+        self.assertIn("AVG(CAST(`cust_id` AS DOUBLE))", query)
+        self.assertIn("STDDEV_SAMP(CAST(`cust_id` AS DOUBLE))", query)
+        self.assertIn("FROM `dbo`.`oracle_customers`", query)
         self.assertIn("'silver.dbo.oracle_customers' AS Table_Name", query)
 
     def test_build_live_profile_query_temporal_skips_mean_and_stddev(self) -> None:
@@ -43,8 +43,8 @@ class InvokeProfileSummaryTests(unittest.TestCase):
 
         self.assertIn("CAST(NULL AS DECIMAL(20,4)) AS Mean", query)
         self.assertIn("CAST(NULL AS DECIMAL(20,4)) AS Std_Dev", query)
-        self.assertIn("MIN([cust_eff_from]) AS [Min]", query)
-        self.assertIn("MAX([cust_eff_from]) AS [Max]", query)
+        self.assertIn("MIN(`cust_eff_from`) AS `Min`", query)
+        self.assertIn("MAX(`cust_eff_from`) AS `Max`", query)
 
     def test_get_live_profile_rows_returns_ordered_results_and_metadata(self) -> None:
         args = SimpleNamespace(
