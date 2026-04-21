@@ -12,7 +12,7 @@ This is the canonical escalation guide for deciding when to use built-in transfo
 |---|---|---|---|
 | **Tier 1** | Built-in `data_transformation_steps` | Always try first | `derived_column`, `filter_data`, `join_data`, `aggregate_data`, `pivot_data`, `add_window_function`, `conditional_column`, `string_functions` |
 | **Tier 2** | Custom notebooks inside the framework | Only if built-ins cannot achieve the requirement | Complex Python/PySpark logic, ML inference, external API calls, recursive hierarchies, 10+ source tables, custom data staging |
-| **Tier 3** | Standalone Fabric notebook or dataflow | Absolute last resort | Existing external notebooks, legacy migration, cross-workspace execution that cannot fit Tier 2 |
+| **Tier 3** | Standalone Databricks notebook or job | Absolute last resort | Existing external notebooks, legacy migration, cross-workspace execution that cannot fit Tier 2 |
 
 ## Tier Escalation Rules
 

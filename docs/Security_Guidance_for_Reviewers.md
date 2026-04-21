@@ -68,14 +68,14 @@ The sections below document patterns that static analysis tools and manual revie
 
 **What these are:**
 
-Databricks workspace IDs, catalog IDs, warehouse IDs, and notebook IDs are **structural identifiers**, not secrets. They are the Fabric equivalent of Azure Resource IDs. They:
+Databricks workspace IDs, catalog IDs, warehouse IDs, and notebook IDs are **structural identifiers**, not secrets. They are the Databricks equivalent of Azure Resource IDs. They:
 
-- Are returned openly by the [workspace REST API](https://learn.microsoft.com/en-us/rest/api/fabric/core/workspaces) in every call
-- Are stored in artifact definitions by [workspace Git integration](https://learn.microsoft.com/en-us/fabric/cicd/git-integration/intro-to-git-integration) by design — this is Microsoft's serialization format
+- Are returned openly by the [Databricks REST API](https://learn.microsoft.com/azure/databricks/api/workspace/workspace) in every call
+- Are stored in artifact definitions by [Databricks Repos / Git folders](https://learn.microsoft.com/azure/databricks/repos/) by design — this is the standard serialization format
 - Grant **zero access** on their own — an attacker who knows a workspace ID still needs Entra ID authentication and Databricks workspace role membership to do anything with it
 - Are **replaced per environment** by the CI/CD pipeline (`Deploy-WorkspaceArtifacts-And-ReplaceIds.ps1`), so values in Git are development workspace references only
 
-**Why CWE-200 (Information Disclosure) does not apply:** These IDs are not sensitive. Microsoft does not classify Fabric resource GUIDs as secrets, just as Azure Subscription IDs and Resource Group names are not secrets.
+**Why CWE-200 (Information Disclosure) does not apply:** These IDs are not sensitive. Microsoft does not classify Databricks resource GUIDs as secrets, just as Azure Subscription IDs and Resource Group names are not secrets.
 
 **What about the `INSERT_WORKSPACEID` placeholders?** The file `workspace_cicd/workspace_cicd.py` contains `INSERT_WORKSPACEID`, `INSERT_ENVIRONMENT`, etc. These are deployment-time placeholders — not default credentials. The CI/CD process performs string replacement using values from secured pipeline variable groups. CWE-798 (Hard-coded Credentials) does not apply because these are neither credentials nor hard-coded values — they are template tokens.
 
@@ -129,7 +129,7 @@ The accelerator constructs Spark SQL statements dynamically using f-strings. The
 **Where you'll see this:**
 - `.github/workflows/*.yml` and `ado_pipelines/*/release.yml` — patterns like:
   ```powershell
-  $access_token = ConvertFrom-SecureString -SecureString (Get-AzAccessToken -AsSecureString -ResourceURL 'https://api.fabric.microsoft.com/').Token -AsPlainText
+  $access_token = ConvertFrom-SecureString -SecureString (Get-AzAccessToken -AsSecureString -ResourceURL 'https://management.azure.com/').Token -AsPlainText
   ```
 
 **What this is:**
@@ -228,7 +228,7 @@ Since many findings stem from confusion about where secrets live and how access 
 
 | Scanner Finding | Typical CWE | Expected Disposition | Reason |
 |----------------|-------------|---------------------|--------|
-| Hardcoded GUIDs / Workspace IDs | CWE-200 | False Positive | Fabric resource IDs are not secrets. CI/CD replaces per environment. |
+| Hardcoded GUIDs / Workspace IDs | CWE-200 | False Positive | Databricks resource IDs are not secrets. CI/CD replaces per environment. |
 | Dynamic SQL via f-strings in Spark | CWE-89 | False Positive | No untrusted input. Metadata-sourced values only. Standard Spark pattern. |
 | `ast.literal_eval` usage | CWE-94 | False Positive | Safe parser — not `eval()`. Python docs recommend it. |
 | Access tokens in CI/CD scripts | CWE-522 | False Positive | Ephemeral runtime tokens via Azure CLI, not stored credentials. |

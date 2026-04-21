@@ -27,7 +27,7 @@ Metadata tables are central to this solution, enabling a flexible, manageable, a
 
 Custom PySpark functions are stored in notebooks within your workspace (e.g., `custom_Sales_Transforms`) and referenced via the `files_to_run` metadata attribute.
 
-All metadata tables are stored in the Fabric **Metadata Warehouse**.
+All metadata tables are stored in the Databricks **Metadata Warehouse**.
 
 ### Understanding Metadata Table Relationships
 *   **Table ID** is the primary key that links records across `Orchestration`, `PrimaryConfig`, and `AdvancedConfig` tables.
@@ -161,7 +161,7 @@ Configuration for processing data from files or existing Delta tables into targe
 |exit_after_staging|If `true`, notebook-owned custom staging lands files and exits before table processing. Default: `false`.|`true`, `false`|
 |custom_source_function_notebook|Name of a PySpark notebook containing your custom source function. Used for external sources where the function returns a DataFrame for framework processing. Notebook name without `.py`.|`notebook1`|
 |custom_source_function|Name of a custom Python function for external data extraction. Returns either a DataFrame or `(DataFrame, next_watermark_value)` and manages its own retrieval contract.|`func1`|
-|datastore_name|Source datastore reference. For file ingestion, identifies the source volume when reading files not in bronze. For `execute_databricks_notebook` and `execute_databricks_job`, set this to the `Datastore_Configuration` entry that stores the Fabric item and workspace GUIDs. For `execute_warehouse_sp`, set this to the warehouse host entry.|Datastore name such as `bronze`, `silver`, `gold`, `ml_predictions_notebook`, `sales_warehouse`|
+|datastore_name|Source datastore reference. For file ingestion, identifies the source volume when reading files not in bronze. For `execute_databricks_notebook` and `execute_databricks_job`, set this to the `Datastore_Configuration` entry that stores the Databricks workspace and item identifiers. For `execute_warehouse_sp`, set this to the warehouse host entry.|Datastore name such as `bronze`, `silver`, `gold`, `ml_predictions_notebook`, `sales_warehouse`|
 |stored_procedure_name|Stored procedure name for `Processing_Method='execute_warehouse_sp'`. Must be placed in `source_details` and paired with `source_details.datastore_name`.|e.g., `[dbo].[RunSalesLoad]`|
 |wildcard_folder_path|Folder path with wildcards such as `myfolder/*.csv`. Required for scheduled file ingestion.||
 |schema|Schema contract definition for files or Delta tables. For files, defines expected columns and types when not inferable. For Delta tables, enforces schema contract validation.|e.g., `name STRING, age INT, city STRING`|
@@ -188,7 +188,7 @@ Configuration for processing data from files or existing Delta tables into targe
 |quarantine_table_name|Name for the table storing quarantined records. Default: `{target_table_name}_quarantined`.|e.g., `dbo.sales_table_quarantined`|
 |delimiter|Column delimiter when outputting to CSV or TXT files instead of Delta.|e.g., `,`, `\t`, `\|`|
 |sheet_name|If outputting to Excel instead of Delta, name of the sheet.||
-|external_location|Path to an ADLS Gen2 container or folder via Fabric shortcut for externally managed Delta tables. Must start with `Files/`.||
+|external_location|Path to an ADLS Gen2 container or folder (typically surfaced through a Unity Catalog external location) for externally managed Delta tables. Must start with `Files/`.||
 |spark_timestamp_rebase_mode|Sets Spark configuration values for Parquet datetime rebasing in write mode. Default: `CORRECTED`.|`CORRECTED`, `EXCEPTION`, `LEGACY`|
 |use_spark_config_for_catalog|Override the default Spark settings for the target datastore.|`bronze`, `silver`, `gold`|
 |liquid_clustering_columns|Comma-separated list of columns for Liquid Clustering on the target Delta table.||

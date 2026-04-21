@@ -348,10 +348,10 @@ See also: [Custom_Transformation_Function.py](resources/Custom_Transformation_Fu
 
 </details>
 
-> **⚠️ Non-Standard Library Warning**: If your custom function imports libraries NOT included in the standard Fabric Runtime 1.3 (e.g., `requests`, `beautifulsoup4`, custom internal packages), you MUST:
+> **⚠️ Non-Standard Library Warning**: If your custom function imports libraries NOT included in the standard Databricks Runtime (e.g., `requests`, `beautifulsoup4`, custom internal packages), you MUST:
 > 1. **Create a custom Databricks compute cluster** with those packages
 > 2. **Attach the Environment** to `batch_processing.py` notebook
-> 3. See: [Create and Use Environments](https://learn.microsoft.com/en-us/fabric/data-engineering/create-and-use-environment)
+> 3. See: [Manage libraries on Databricks compute](https://learn.microsoft.com/azure/databricks/libraries/)
 > 
 > The validator will detect non-standard imports and warn you about this requirement.
 
@@ -842,7 +842,7 @@ src/
 
 </details>
 
-> **⚠️ Non-Standard Library Warning**: If your custom ingestion function imports libraries NOT included in the standard Fabric Runtime 1.3, you MUST create a custom Databricks compute cluster. See [Create and Use Environments](https://learn.microsoft.com/en-us/fabric/data-engineering/create-and-use-environment). The validator will detect non-standard imports automatically.
+> **⚠️ Non-Standard Library Warning**: If your custom ingestion function imports libraries NOT included in the standard Databricks Runtime, you MUST configure a Databricks compute cluster with those libraries installed. See [Manage libraries on Databricks compute](https://learn.microsoft.com/azure/databricks/libraries/). The validator will detect non-standard imports automatically.
 
 > **⚠️ Config Attribute Validation**: If your ingestion function accesses `primary_config.get('custom_table_ingestion_function_my_param')`, the validator verifies that attribute exists in your `source_details` metadata. For example:
 > ```python

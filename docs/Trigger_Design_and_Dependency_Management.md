@@ -88,7 +88,7 @@ This design creates more dependencies than exist in the real world: every gold t
 
 Instead of one broad trigger, break the work into **granular triggers that match the actual dependency chains**. Each trigger carries a table from source through to gold independently.
 
-> **Platform limitation:** Fabric supports up to 20 schedule triggers per pipeline. New distinct schedules require creating a new pipeline.
+> **Platform limitation:** Databricks supports up to 20 schedule triggers per job. New distinct schedules require creating a new job.
 
 ```
 Trigger: "Table_A_Load"                    Trigger: "Table_B_Load"
@@ -212,7 +212,7 @@ The external scheduler calls the workspace REST API (or Databricks CLI) with two
 1. **Which pipeline to run** — always the same generic orchestration pipeline
 2. **Which trigger name to pass** — controls which tables are processed
 
-The API returns a job instance ID that the scheduler can poll for completion status before starting dependent jobs. This is the same pattern used to call any Fabric pipeline — the only addition is the trigger name parameter.
+The API returns a job instance ID that the scheduler can poll for completion status before starting dependent jobs. This is the same pattern used to call any Databricks job — the only addition is the trigger name parameter.
 
 ---
 
@@ -241,7 +241,7 @@ The mapping from existing pipeline jobs to accelerator triggers is straightforwa
 | "If I pass a trigger with 100 tables, is there no parallelism?" | **All tables with the same Order_Of_Operations run in parallel.** 100 tables at order 1 = 100 concurrent executions. |
 | "Gold waits until ALL silver tables complete?" | **Only within the same trigger and only across order boundaries.** Use separate triggers to eliminate cross-table waiting. |
 | "Silver A finishes — can Gold A run immediately without waiting for Silver B, C?" | **Yes — put Silver A and Gold A in their own trigger.** Gold A starts as soon as Silver A completes. |
-| "How do I pass the trigger name from an external scheduler?" | **Pipeline parameter via workspace REST API or Databricks CLI.** Same mechanism as calling any Fabric pipeline. |
+| "How do I pass the trigger name from an external scheduler?" | **Pipeline parameter via workspace REST API or Databricks CLI.** Same mechanism as calling any Databricks job. |
 | "Are we creating more dependencies than we have today?" | **Not necessarily.** The accelerator supports any level of granularity — triggers can be as broad or as narrow as needed. The team decides what grouping makes sense based on actual data dependencies. |
 | "What if a trigger fails mid-run? Do I have to restart everything?" | **No.** Use `start_with_step` and `table_ids` parameters to restart from the failed step and target only failed Table_IDs. See [Restarting Pipelines From Failure](Restarting_Pipelines_From_Failure.md). |
 

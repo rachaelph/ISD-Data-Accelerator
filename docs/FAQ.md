@@ -153,7 +153,7 @@ This repository contains the **Databricks Data Engineering Accelerator** - a met
 
 - **Medallion Architecture**: Automated Bronze → Silver → Gold data processing pipeline
 - **Metadata-Driven Configuration**: Configure data ingestion and transformations using SQL metadata tables instead of coding individual pipelines
-- **Multi-Source Support**: Ingest from databases (Oracle, SQL Server, PostgreSQL, etc.), files (CSV, JSON, Excel, XML, Parquet), external volume shortcuts, and Fabric mirrored sources
+- **Multi-Source Support**: Ingest from databases (Oracle, SQL Server, PostgreSQL, etc.), files (CSV, JSON, Excel, XML, Parquet), external volume shortcuts, and Databricks Lakehouse Federation / mirrored sources
 - **Built-in DevOps**: CI/CD pipelines, multi-developer environments, Git integration, and automated testing
 - **Enterprise Features**: Incremental loading with watermarks, SCD Type 2 dimensions, data quality checks, quarantine handling, and real-time monitoring reports
 
@@ -184,7 +184,7 @@ See [INGESTION_PATTERNS_REFERENCE.md](INGESTION_PATTERNS_REFERENCE.md) for the c
 - **Databases**: Oracle, SQL Server, PostgreSQL, MySQL, DB2, Azure SQL
 - **Files**: CSV, JSON, Excel, XML, Parquet (from UC Volumes, including shortcuts)
 - **Shortcuts**: external volume shortcuts (cross-workspace, cross-tenant) and external shortcuts (ADLS Gen2, S3, Google Cloud Storage, Dataverse) are fully supported for file ingestion
-- **Database mirroring**: The solution can read from mirrored data out of the box — mirrored data lands as Delta tables, so you configure it the same way as any other catalog table. Fabric supports mirroring from Azure SQL Database, Azure Cosmos DB, Snowflake, Azure Databricks, Google BigQuery, Oracle, and PostgreSQL. See [How do I ingest a Delta table or mirrored database table from another workspace with CDF?](#how-do-i-ingest-a-delta-table-or-mirrored-database-table-from-another-workspace-with-change-data-feed) for setup steps
+- **Database mirroring**: The solution can read from mirrored data out of the box — mirrored data lands as Delta tables, so you configure it the same way as any other catalog table. Databricks Lakehouse Federation and mirroring support sources such as Azure SQL Database, Azure Cosmos DB, Snowflake, Google BigQuery, Oracle, and PostgreSQL. See [How do I ingest a Delta table or mirrored database table from another workspace with CDF?](#how-do-i-ingest-a-delta-table-or-mirrored-database-table-from-another-workspace-with-change-data-feed) for setup steps
 
 ### How do I deploy the IP (Intellectual Property)?
 **Keywords:** deployment, install, setup, installation, provisioning, artifacts, workspace setup, initial setup, deploy artifacts, create workspace
@@ -296,7 +296,7 @@ The deployment process creates a comprehensive set of artifacts in your Databric
 
 The solution deploys modular pipelines that orchestrate metadata-driven data movement. See [Core Components Reference - Pipelines](CORE_COMPONENTS_REFERENCE.md#data-pipelines-for-data-movement) for the full breakdown.
 
-**Summary:** `Trigger Step Orchestrator` loops through `Order_Of_Operations` steps for a trigger. `Entity Router` routes each Table_ID by `Processing_Method`: `batch` goes directly to `batch_processing.py`; `pipeline_stage_and_batch` goes to `staging task` (which invokes `batch_processing.py` after staging); other methods go to `non-framework executor`. `staging task` handles external database extraction with watermark tracking. `non-framework executor` orchestrates warehouse SPs, custom notebooks, and dataflows. Utility pipelines handle profiling (`Exploratory_Data_Analysis`) and DDL extraction (`External Data Staging_Metadata`). For alerting, use [alerting alert rules on Warehouse SQL queries](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/data-activator/set-alerts-warehouse-sql-query).
+**Summary:** `Trigger Step Orchestrator` loops through `Order_Of_Operations` steps for a trigger. `Entity Router` routes each Table_ID by `Processing_Method`: `batch` goes directly to `batch_processing.py`; `pipeline_stage_and_batch` goes to `staging task` (which invokes `batch_processing.py` after staging); other methods go to `non-framework executor`. `staging task` handles external database extraction with watermark tracking. `non-framework executor` orchestrates warehouse SPs, custom notebooks, and dataflows. Utility pipelines handle profiling (`Exploratory_Data_Analysis`) and DDL extraction (`External Data Staging_Metadata`). For alerting, use [Databricks SQL alerts](https://learn.microsoft.com/azure/databricks/sql/user/alerts) on warehouse queries.
 
 ### How does data ingestion work in this solution?
 **Keywords:** ingestion, data flow, how it works, process, execution, workflow, metadata-driven, configuration, orchestration, data movement, ETL process, end-to-end, data processing, transformation flow
@@ -345,7 +345,7 @@ For detailed guidance on creating custom functions, see [Extending the Accelerat
 
 **Also answers:** Why not use Polars? Should I use DuckDB in the workspace? Can I mix Polars and Spark? Why PySpark over Python? What about single node compute? Is Polars faster than Spark? Should I use Python notebook instead of Spark? Which notebook type should I use? Can I use pandas instead of PySpark? What runtime should my notebook use?
 
-This accelerator **standardizes on Spark notebooks** rather than Python notebooks with libraries like Polars or DuckDB. This is a deliberate architectural decision based on Delta Lake compatibility, Fabric platform alignment, and long-term maintainability.
+This accelerator **standardizes on Spark notebooks** rather than Python notebooks with libraries like Polars or DuckDB. This is a deliberate architectural decision based on Delta Lake compatibility, Databricks platform alignment, and long-term maintainability.
 
 **Delta Lake Feature Compatibility:**
 
@@ -481,9 +481,9 @@ The solution provides comprehensive traceability through multiple logging mechan
 
 The accelerator does not include a custom alerting pipeline. Instead, use two native Databricks capabilities:
 
-1. **Built-in scheduled job failure notifications** (recommended) — the simplest way to get alerted when a pipeline run fails. Configure job failure notifications in your Databricks workspace. Works for pipelines, notebooks, dataflows, and any other schedulable item. Emails include error details and a link to the failed run in Monitoring Hub. See [Get notified when scheduled jobs fail in the workspace](https://blog.fabric.microsoft.com/en-us/blog/get-notified-when-scheduled-jobs-fail-in-fabric-generally-available) for details.
+1. **Built-in scheduled job failure notifications** (recommended) — the simplest way to get alerted when a pipeline run fails. Configure job failure notifications in your Databricks workspace. Works for jobs, notebooks, and any other schedulable task. Emails include error details and a link to the failed job run. See [Configure email and system notifications for jobs](https://learn.microsoft.com/azure/databricks/jobs/notifications) for details.
 
-2. **SQL-based alert rules on warehouse queries** — for content-aware alerts driven by your data (e.g., DQ failures, specific error patterns). In the metadata warehouse SQL editor, write a `SELECT` query against `Data_Pipeline_Logs` (for failures) or `Data_Quality_Notifications` (for DQ issues), then select **Create rule** from the ribbon. Configure the check frequency, condition, and action (email, Teams message, or trigger a Fabric item). See [Create an alert rule on a Warehouse SQL query](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/data-activator/set-alerts-warehouse-sql-query) for full instructions.
+2. **SQL-based alert rules on warehouse queries** — for content-aware alerts driven by your data (e.g., DQ failures, specific error patterns). In the metadata warehouse SQL editor, write a `SELECT` query against `Data_Pipeline_Logs` (for failures) or `Data_Quality_Notifications` (for DQ issues), then create a Databricks SQL alert. Configure the check frequency, condition, and action (email, webhook, or destination integration). See [Create a Databricks SQL alert](https://learn.microsoft.com/azure/databricks/sql/user/alerts) for full instructions.
 
    **Example — alert on pipeline failures today:**
    ```sql
@@ -631,7 +631,7 @@ When GitHub Copilot generates metadata configuration files, they seamlessly inte
    ```
    **Note**: Each trigger gets its own `.sql` folder containing `.sql`.
 
-   **Note**: Replace `<workspace-folder>` with your actual workspace folder name (e.g., `src`, `fabric`, or `MyWorkspace`)
+   **Note**: Replace `<workspace-folder>` with your actual workspace folder name (e.g., `src`, `databricks`, or `MyWorkspace`)
 
 2. **Git Commit & Push**: Use VS Code's Source Control panel to commit and push the generated files:
    - Open the Source Control view (Ctrl+Shift+G)
@@ -1221,7 +1221,7 @@ The accelerator supports attaching a Databricks compute cluster to control Spark
 
 **What is a Databricks compute cluster?**
 
-A Databricks compute cluster is a configurable artifact that bundles Spark compute settings (cluster size, driver/executor cores, memory) and library management (public PyPI packages, custom `.whl`/`.jar` files) into a reusable configuration. See the [Microsoft documentation](https://learn.microsoft.com/en-us/fabric/data-engineering/create-and-use-environment) for full details.
+A Databricks compute cluster is a configurable artifact that bundles Spark compute settings (cluster size, driver/executor cores, memory) and library management (public PyPI packages, custom `.whl`/`.jar` files) into a reusable configuration. See the [Microsoft documentation](https://learn.microsoft.com/azure/databricks/compute/) for full details.
 
 **How to configure it:**
 
@@ -1356,14 +1356,14 @@ When `batch_processing.py` starts for a given entity, it checks if `spark_enviro
 - **`pipeline_stage_only`**: Same external source extraction as `pipeline_stage_and_batch` (data is copied to UC Volumes via `External Data Staging`), but **stops after staging** — does **not** write to a Delta table. Use this when you want to land raw files in the UC Volumes section for downstream consumption (e.g., another team's notebook, manual inspection, or a separate processing pipeline) without the accelerator automatically loading them into a table. The same `source_details` configuration applies (`source`, `datastore_name`, `query`, `staging_volume_name`, `staging_folder_path`, etc.).
 - **`execute_databricks_notebook`**: Execute an external Databricks notebook as a job task. Use when orchestrating existing notebooks, legacy migration, or cross-workspace processing.
 - **`execute_warehouse_sp`**: Execute a warehouse stored procedure as a standalone pipeline activity. Author metadata using `source_details.datastore_name` for the warehouse host and `source_details.stored_procedure_name` for the procedure name.
-- **`execute_databricks_job`**: Execute a Databricks job as a **standalone** task for data already within the workspace (e.g., workspace-internal Fabric transformations using Power Query). Use when you need Power Query transformations or want to orchestrate existing dataflows. **Note:** This is different from using a external job inside `External Data Staging_Copy` for external data staging — for that scenario, see `pipeline_stage_and_batch` above.
+- **`execute_databricks_job`**: Execute a Databricks job as a **standalone** task for data already within the workspace (e.g., workspace-internal transformations or existing notebook orchestrations). Use when you need to orchestrate existing jobs or workflows. **Note:** This is different from using an external job inside `External Data Staging_Copy` for external data staging — for that scenario, see `pipeline_stage_and_batch` above.
 
-> ⚠️ **CI/CD note for `execute_*` methods:** Register the executable artifact host in `Datastore_Configuration` and reference it by `source_details.datastore_name` in metadata. For notebooks/dataflows, that entry is the Fabric item itself. For warehouse stored procedures, that entry is the warehouse host and the procedure name lives in `source_details.stored_procedure_name`. See [What IDs does the Workspace CI/CD pipeline replace automatically?](#what-ids-does-the-workspace-cicd-pipeline-replace-automatically) for details.
+> ⚠️ **CI/CD note for `execute_*` methods:** Register the executable artifact host in `Datastore_Configuration` and reference it by `source_details.datastore_name` in metadata. For notebooks/jobs, that entry is the Databricks workspace and item itself. For warehouse stored procedures, that entry is the warehouse host and the procedure name lives in `source_details.stored_procedure_name`. See [What IDs does the Workspace CI/CD pipeline replace automatically?](#what-ids-does-the-workspace-cicd-pipeline-replace-automatically) for details.
 
 ### How do I ingest from external sources without using a pipeline Copy Activity?
 **Keywords:** custom source function, custom staging function, REST API, SDK, OAuth, external database, notebook ingestion, batch external, custom connector, no Copy Activity, custom_source_function, custom_staging_function, API ingestion
 
-**Also answers:** How do I pull data from a REST API? How do I use a Python SDK to ingest data? Can I ingest external data without pipeline_stage_and_batch? How do I connect to sources not supported by Fabric connectors?
+**Also answers:** How do I pull data from a REST API? How do I use a Python SDK to ingest data? Can I ingest external data without pipeline_stage_and_batch? How do I connect to sources not supported by built-in Databricks connectors?
 
 Use `Processing_Method = 'batch'` with one of two notebook-native custom functions. Both run inside `batch_processing.py` — no pipeline Copy Activity or `staging task` staging pipeline is involved.
 
@@ -1589,7 +1589,7 @@ Use the `/fdp-06-investigate` prompt command in Copilot Chat. This activates the
 
 | Mistake | What Happens | Fix |
 |---------|--------------|-----|
-| `Datastore_Name` doesn't match workspace artifact name | Pipeline fails — cannot find datastore | Use the **exact** display name from Fabric |
+| `Datastore_Name` doesn't match workspace artifact name | Pipeline fails — cannot find datastore | Use the **exact** display name from Databricks |
 | catalog name conflicts with another in the tenant | the platform renames it (e.g., appends a number) | Choose a globally unique name upfront |
 | Forgot to add datastore in QA/PROD notebooks | CI/CD deployment to QA/PROD fails | Add to all `datastore_*.sql` files |
 | Used different GUIDs across notebooks for same env | Points to wrong artifact | Copy GUIDs carefully per environment |
@@ -1824,7 +1824,7 @@ Short answer:
 - choose multiple workspaces when you need stronger isolation, governance boundaries, or separate capacities
 - expect custom deployment orchestration once notebooks, pipelines, warehouses, or environments are split across workspaces
 
-For the full tradeoff discussion, see [DevOps.md](DevOps.md#workspace-cicd), [Workspace_CICD_Guide.md](Workspace_CICD_Guide.md), and [Databricks deployment patterns](https://learn.microsoft.com/en-us/azure/architecture/analytics/architecture/fabric-deployment-patterns).
+For the full tradeoff discussion, see [DevOps.md](DevOps.md#workspace-cicd), [Workspace_CICD_Guide.md](Workspace_CICD_Guide.md), and [Databricks workspace topology guidance](https://learn.microsoft.com/azure/databricks/admin/workspace/manage-workspaces).
 
 ### How do I set up Git repositories if I deployed across multiple workspaces?
 **Keywords:** multi-workspace Git, repository structure, Git setup, multiple workspaces, workspace folders, Git organization, repository layout, single workspace Git, repo structure, clone, copy assets

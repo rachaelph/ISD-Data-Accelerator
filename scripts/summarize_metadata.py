@@ -8,7 +8,7 @@ Usage:
     python scripts/summarize_metadata.py [path_to_sql_file]
     python scripts/summarize_metadata.py  # summarizes all metadata notebooks in src/metadata/
 
-Author: Generated for Fabric Data Platform Accelerator
+Author: Generated for Databricks Data Platform Accelerator
 """
 
 import re

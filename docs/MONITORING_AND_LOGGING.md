@@ -71,7 +71,7 @@ def log_and_print(message: str, level: str = "info"):
 
 ### Log Integration with Databricks
 
-The logging framework leverages Databricks's diagnostic emitters as documented in the [official Fabric documentation](https://learn.microsoft.com/en-us/fabric/data-engineering/azure-fabric-diagnostic-emitters-log-analytics#write-custom-application-logs).
+The logging framework leverages Databricks's diagnostic emitters as documented in the [Databricks documentation](https://learn.microsoft.com/azure/databricks/admin/account-settings/audit-log-delivery).
 
 #### Benefits of Databricks Integration:
 1. **Centralized Collection**: All logs are collected in a single Log Analytics workspace
@@ -176,7 +176,7 @@ The Data Pipeline Logs table includes details about how data was moved from one 
 - **Spark Monitor URL**: URL to view the data pipeline run details in Databricks
 - **Trigger Name**: Trigger Name from Orchestration Metadata Table
 - **Trigger Step**: Order of Operations value from Orchestration Metadata Table
-- **Trigger Execution ID**: GUID created by Fabric for ID of trigger invocation
+- **Trigger Execution ID**: GUID created by Databricks for the ID of the trigger invocation
 - **Trigger Execution Start Time**: When the trigger execution started
 - **Date Key**: Used for reporting 
 

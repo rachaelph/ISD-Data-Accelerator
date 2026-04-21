@@ -666,7 +666,7 @@ The validator checks **all custom function types** (`custom_transformation_funct
      - Any special notes or prerequisites (e.g., "Requires connection GUID to be updated")
 
 2. **Always Ask Clarifying Questions**
-   - **"What are the actual names of your Fabric catalogs?"** (e.g., raw_data, curated, analytics - NOT assumed bronze/silver/gold)
+   - **"What are the actual names of your Databricks catalogs?"** (e.g., raw_data, curated, analytics - NOT assumed bronze/silver/gold)
    - "Do you need incremental loading or full reload?"
    - "What are the primary keys?"
    - "Do you need any data transformations?"

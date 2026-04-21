@@ -3,7 +3,7 @@ Data Engineering Challenges Demo - T-SQL Script
 
 Purpose:
     Showcases common data engineering challenges that teams face daily,
-    and how they can be solved using the Fabric Data Platform Accelerator's
+    and how they can be solved using the Databricks Data Platform Accelerator's
     metadata-driven approach - NO CODE REQUIRED.
 
 Challenges Demonstrated:
@@ -17,7 +17,7 @@ Challenges Demonstrated:
 
 Use this script as input to demonstrate metadata generation capabilities.
 
-Author: Fabric Data Platform Accelerator Demo
+Author: Databricks Data Platform Accelerator Demo
 */
 
 -- =====================================================================

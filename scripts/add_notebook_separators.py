@@ -131,7 +131,7 @@ def patch_helper_1(text: str) -> str:
 
     # 2. Replace sc._jvm logger
     text = text.replace(
-        "    # https://learn.microsoft.com/en-us/fabric/data-engineering/azure-fabric-diagnostic-emitters-log-analytics#write-custom-application-logs\n"
+        "    # https://learn.microsoft.com/azure/databricks/admin/account-settings/audit-log-delivery\n"
         "    logger = sc._jvm.org.apache.log4j.LogManager.getLogger(\"spark_application_logger\")",
         "    # Use Python logging instead of sc._jvm (not supported on shared clusters)\n"
         "    import logging\n"

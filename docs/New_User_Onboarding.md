@@ -194,7 +194,7 @@ The execution failed. Investigate the latest error and tell me exactly what to f
 - [ ] Open GitHub Copilot Chat
 - [ ] Run `/fdp-01-onboarding`
 - [ ] Use `/fdp-02-deploy` to walk through deployment prerequisites
-- [ ] Connect your Fabric dev workspace to the same Git repo and correct folder
+- [ ] Connect your Databricks dev workspace to the same Git repo and correct folder
 - [ ] Use `/fdp-03-author` for one small test table
 - [ ] Use `/fdp-04-commit` to deploy changes to a dev workspace
 - [ ] Use `/fdp-05-run` to execute in a dev workspace
