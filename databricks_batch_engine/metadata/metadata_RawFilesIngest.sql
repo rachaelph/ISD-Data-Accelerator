@@ -49,7 +49,7 @@ DELETE FROM Data_Pipeline_Metadata_Orchestration WHERE Trigger_Name = 'RawFilesI
 -- Order_Of_Operations: 1=Bronze, 2=Silver, 3=Gold (later layers depend on earlier).
 -- Processing_Method='batch' for both file ingestion and Delta-to-Delta hops.
 -- Primary_Keys left empty for overwrite flows where no merge is performed.
-INSERT INTO Data_Pipeline_Metadata_Orchestration ([Trigger_Name],[Order_Of_Operations],[Table_ID],[Target_Datastore],[Target_Entity],[Primary_Keys],[Processing_Method],[Ingestion_Active])
+INSERT INTO Data_Pipeline_Metadata_Orchestration (Trigger_Name, Order_Of_Operations, Table_ID, Target_Datastore, Target_Entity, Primary_Keys, Processing_Method, Ingestion_Active)
 VALUES
 ('RawFilesIngest', 1, 1001, 'bronze', 'housing_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1002, 'bronze', 'london_taxi_raw', '', 'batch', 1),
