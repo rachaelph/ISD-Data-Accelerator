@@ -54,11 +54,14 @@ VALUES
 ('RawFilesIngest', 1, 1001, 'bronze', 'housing_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1002, 'bronze', 'london_taxi_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1003, 'bronze', 'nyc_taxi_raw', '', 'batch', 1),
+('RawFilesIngest', 1, 1004, 'bronze', 'titanic_raw', '', 'batch', 1),
 ('RawFilesIngest', 2, 1101, 'silver', 'housing', '', 'batch', 1),
 ('RawFilesIngest', 2, 1102, 'silver', 'london_taxi', '', 'batch', 1),
 ('RawFilesIngest', 2, 1103, 'silver', 'nyc_taxi', '', 'batch', 1),
+('RawFilesIngest', 2, 1104, 'silver', 'titanic', '', 'batch', 1),
 ('RawFilesIngest', 3, 1201, 'gold', 'taxi_trip_metrics', '', 'batch', 1),
-('RawFilesIngest', 3, 1202, 'gold', 'housing_summary', '', 'batch', 1);
+('RawFilesIngest', 3, 1202, 'gold', 'housing_summary', '', 'batch', 1),
+('RawFilesIngest', 3, 1203, 'gold', 'titanic_survival_summary', '', 'batch', 1);
 
 -- =====================================================================
 -- STEP 3: Primary Configuration
@@ -112,6 +115,20 @@ VALUES
 (1003, 'data_cleansing', 'trim_data_in_string_columns', '*'),
 (1003, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1004: Bronze ingestion of titanic.csv from UC Volume
+-- ---------------------------------------------------------------------
+(1004, 'source_details', 'wildcard_folder_path', 'raw_files/titanic.csv'),
+(1004, 'source_details', 'datastore_name', 'bronze'),
+(1004, 'source_details', 'file_has_header_row', 'true'),
+(1004, 'source_details', 'delimiter', ','),
+(1004, 'source_details', 'on_bad_records', 'quarantine'),
+(1004, 'column_cleansing', 'trim', 'true'),
+(1004, 'column_cleansing', 'apply_case', 'lower'),
+(1004, 'column_cleansing', 'replace_non_alphanumeric_with_underscore', 'true'),
+(1004, 'data_cleansing', 'replace_blank_with_null_in_string_columns', '*'),
+(1004, 'data_cleansing', 'trim_data_in_string_columns', '*'),
+(1004, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1101: Silver housing - typed + deduplicated from bronze
 -- ---------------------------------------------------------------------
 -- Source is a Delta table - only table_name is required (no source attribute).
@@ -128,6 +145,11 @@ VALUES
 (1103, 'source_details', 'table_name', 'bronze.nyc_taxi_raw'),
 (1103, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1104: Silver titanic - typed + deduplicated + DQ from bronze
+-- ---------------------------------------------------------------------
+(1104, 'source_details', 'table_name', 'bronze.titanic_raw'),
+(1104, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1201: Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
 -- Primary source is london_taxi -- nyc is unioned via union_data step below.
@@ -137,7 +159,12 @@ VALUES
 -- Table_ID 1202: Gold housing_summary - aggregate by house_age bucket
 -- ---------------------------------------------------------------------
 (1202, 'source_details', 'table_name', 'silver.housing'),
-(1202, 'target_details', 'merge_type', 'overwrite');
+(1202, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1203: Gold titanic_survival_summary - survival rate by class/sex
+-- ---------------------------------------------------------------------
+(1203, 'source_details', 'table_name', 'silver.titanic'),
+(1203, 'target_details', 'merge_type', 'overwrite');
 
 -- =====================================================================
 -- STEP 4: Advanced Configuration (Transformations and Data Quality)
@@ -174,6 +201,15 @@ VALUES
 (1003, 'data_quality', 'validate_not_null', 2, 'column_name', 'distance'),
 (1003, 'data_quality', 'validate_not_null', 2, 'message', 'distance must not be null in nyc_taxi_raw'),
 (1003, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1004 Bronze titanic_raw - DQ on key columns
+-- ---------------------------------------------------------------------
+(1004, 'data_quality', 'validate_not_null', 1, 'column_name', 'passengerid'),
+(1004, 'data_quality', 'validate_not_null', 1, 'message', 'passengerid must not be null in titanic_raw'),
+(1004, 'data_quality', 'validate_not_null', 1, 'if_not_compliant', 'quarantine'),
+(1004, 'data_quality', 'validate_not_null', 2, 'column_name', 'survived'),
+(1004, 'data_quality', 'validate_not_null', 2, 'message', 'survived must not be null in titanic_raw'),
+(1004, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
 -- Table_ID 1101 Silver housing - cast types, drop dupes, DQ
 -- ---------------------------------------------------------------------
@@ -236,6 +272,35 @@ VALUES
 (1103, 'data_quality', 'validate_range', 2, 'message', 'passengers must be between 1 and 8'),
 (1103, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1104 Silver titanic - cast types, dedupe, DQ
+-- ---------------------------------------------------------------------
+-- Cast integer columns.
+(1104, 'data_transformation_steps', 'change_data_types', 1, 'column_name', 'passengerid,survived,pclass,sibsp,parch'),
+(1104, 'data_transformation_steps', 'change_data_types', 1, 'new_type', 'int'),
+-- Cast continuous numeric columns.
+(1104, 'data_transformation_steps', 'change_data_types', 2, 'column_name', 'age,fare'),
+(1104, 'data_transformation_steps', 'change_data_types', 2, 'new_type', 'double'),
+-- Filter out rows with negative fare (invalid).
+(1104, 'data_transformation_steps', 'filter_data', 3, 'filter_logic', 'fare IS NULL OR fare >= 0'),
+-- Deduplicate on passengerid (the natural key).
+(1104, 'data_transformation_steps', 'drop_duplicates', 4, 'column_name', 'passengerid'),
+-- DQ: passengerid + survived must always be present after typing.
+(1104, 'data_quality', 'validate_not_null', 1, 'column_name', 'passengerid,survived'),
+(1104, 'data_quality', 'validate_not_null', 1, 'message', 'passengerid and survived required in silver.titanic'),
+(1104, 'data_quality', 'validate_not_null', 1, 'if_not_compliant', 'quarantine'),
+-- DQ: survived flag must be 0 or 1.
+(1104, 'data_quality', 'validate_range', 2, 'column_name', 'survived'),
+(1104, 'data_quality', 'validate_range', 2, 'min_value', '0'),
+(1104, 'data_quality', 'validate_range', 2, 'max_value', '1'),
+(1104, 'data_quality', 'validate_range', 2, 'message', 'survived must be 0 or 1'),
+(1104, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'quarantine'),
+-- DQ: pclass must be 1, 2, or 3.
+(1104, 'data_quality', 'validate_range', 3, 'column_name', 'pclass'),
+(1104, 'data_quality', 'validate_range', 3, 'min_value', '1'),
+(1104, 'data_quality', 'validate_range', 3, 'max_value', '3'),
+(1104, 'data_quality', 'validate_range', 3, 'message', 'pclass must be 1, 2, or 3'),
+(1104, 'data_quality', 'validate_range', 3, 'if_not_compliant', 'quarantine'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1201 Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
 -- Step 1: union london (primary source) with nyc on shared columns.
@@ -270,4 +335,23 @@ VALUES
 (1202, 'data_quality', 'validate_range', 1, 'column_name', 'avg_target'),
 (1202, 'data_quality', 'validate_range', 1, 'min_value', '0'),
 (1202, 'data_quality', 'validate_range', 1, 'message', 'gold housing_summary avg_target must be positive'),
-(1202, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn');
+(1202, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1203 Gold titanic_survival_summary - survival rate by class/sex
+-- ---------------------------------------------------------------------
+-- Aggregate: rows per (pclass, sex) plus mean survival rate and mean fare.
+(1203, 'data_transformation_steps', 'aggregate_data', 1, 'group_by_columns', 'pclass,sex'),
+(1203, 'data_transformation_steps', 'aggregate_data', 1, 'column_name', 'passengerid,survived,fare'),
+(1203, 'data_transformation_steps', 'aggregate_data', 1, 'aggregation', 'count,avg,avg'),
+(1203, 'data_transformation_steps', 'aggregate_data', 1, 'output_column_name', 'passenger_count,survival_rate,avg_fare'),
+-- DQ: every (pclass, sex) group must have at least one passenger.
+(1203, 'data_quality', 'validate_range', 1, 'column_name', 'passenger_count'),
+(1203, 'data_quality', 'validate_range', 1, 'min_value', '1'),
+(1203, 'data_quality', 'validate_range', 1, 'message', 'gold titanic_survival_summary must aggregate at least one passenger per group'),
+(1203, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn'),
+-- DQ: survival_rate must be a probability between 0 and 1.
+(1203, 'data_quality', 'validate_range', 2, 'column_name', 'survival_rate'),
+(1203, 'data_quality', 'validate_range', 2, 'min_value', '0'),
+(1203, 'data_quality', 'validate_range', 2, 'max_value', '1'),
+(1203, 'data_quality', 'validate_range', 2, 'message', 'survival_rate must be between 0 and 1'),
+(1203, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'warn');
