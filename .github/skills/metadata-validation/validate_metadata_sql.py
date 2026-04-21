@@ -1553,10 +1553,12 @@ def validate_advanced_config(result: ValidationResult, advanced_rows: list, orch
                     suggestion="Use format: catalog.schema.table_name (e.g., 'silver.silver.dim_customer')")
 
         if attribute == 'union_tables' and value:
+            # union_data resolves the catalog from the datastore_name, so the required form is
+            # 2-part: '<datastore_name>.<table_name>' (same as source_details.table_name).
             for table_ref in value.split(','):
                 table_ref = table_ref.strip()
-                if table_ref and len(table_ref.split('.')) != 3:
-                    result.add_issue('error', 'three_part_naming', f"union_tables entry needs 3-part naming: '{table_ref}'", table_id=table_id, line_number=line_num)
+                if table_ref and len(table_ref.split('.')) != 2:
+                    result.add_issue('error', 'two_part_naming', f"union_tables entry needs 2-part naming '<datastore>.<table>': '{table_ref}'", table_id=table_id, line_number=line_num)
 
         if name == 'change_data_types' and attribute == 'new_type':
             # Split on commas, but skip commas that appear inside parentheses (e.g., preserve decimal(18,6) as a single token)

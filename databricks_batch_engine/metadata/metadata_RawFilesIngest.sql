@@ -239,7 +239,7 @@ VALUES
 -- Table_ID 1201 Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
 -- Step 1: union london (primary source) with nyc on shared columns.
-(1201, 'data_transformation_steps', 'union_data', 1, 'union_tables', 'silver.silver.nyc_taxi'),
+(1201, 'data_transformation_steps', 'union_data', 1, 'union_tables', 'silver.nyc_taxi'),
 (1201, 'data_transformation_steps', 'union_data', 1, 'union_type', 'by_name'),
 (1201, 'data_transformation_steps', 'union_data', 1, 'allow_missing_columns', 'false'),
 -- Step 2: aggregate trip metrics by city + vendor + pickup_month.
