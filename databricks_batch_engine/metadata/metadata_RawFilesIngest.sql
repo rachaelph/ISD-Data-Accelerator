@@ -69,7 +69,7 @@ VALUES
 -- Table_ID 1001: Bronze ingestion of housing_price.csv from UC Volume
 -- ---------------------------------------------------------------------
 -- Absolute Volume path - framework accepts paths starting with '/'.
-(1001, 'source_details', 'wildcard_folder_path', 'Volumes/kpi_platform/bronze/raw_files/housing_price.csv'),
+(1001, 'source_details', 'wildcard_folder_path', 'raw_files/housing_price.csv'),
 (1001, 'source_details', 'datastore_name', 'bronze'),
 (1001, 'source_details', 'file_has_header_row', 'true'),
 (1001, 'source_details', 'delimiter', ','),
@@ -86,7 +86,7 @@ VALUES
 -- ---------------------------------------------------------------------
 -- Table_ID 1002: Bronze ingestion of london_taxi.csv from UC Volume
 -- ---------------------------------------------------------------------
-(1002, 'source_details', 'wildcard_folder_path', 'Volumes/kpi_platform/bronze/raw_files/london_taxi.csv'),
+(1002, 'source_details', 'wildcard_folder_path', 'raw_files/london_taxi.csv'),
 (1002, 'source_details', 'datastore_name', 'bronze'),
 (1002, 'source_details', 'file_has_header_row', 'true'),
 (1002, 'source_details', 'delimiter', ','),
@@ -100,7 +100,7 @@ VALUES
 -- ---------------------------------------------------------------------
 -- Table_ID 1003: Bronze ingestion of nyc_taxi.csv from UC Volume
 -- ---------------------------------------------------------------------
-(1003, 'source_details', 'wildcard_folder_path', 'Volumes/kpi_platform/bronze/raw_files/nyc_taxi.csv'),
+(1003, 'source_details', 'wildcard_folder_path', 'raw_files/nyc_taxi.csv'),
 (1003, 'source_details', 'datastore_name', 'bronze'),
 (1003, 'source_details', 'file_has_header_row', 'true'),
 (1003, 'source_details', 'delimiter', ','),
