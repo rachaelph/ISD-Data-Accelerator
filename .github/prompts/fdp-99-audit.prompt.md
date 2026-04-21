@@ -44,7 +44,7 @@ For each relevant area, check:
 ├── Would a concrete example (SQL snippet, JSON sample) reduce confusion?
 │   └── Flag when an example would save significant time for future tasks
 ├── Is any referenced information potentially outdated?
-│   └── Flag if version drift (Fabric changes, renamed notebooks, deprecated tables) could mislead
+│   └── Flag if version drift (Databricks changes, renamed notebooks, deprecated tables) could mislead
 └── Should any Q&A be added to docs/FAQ.md?
     └── Only if: likely to recur, repo-specific, non-trivial, not already covered
 

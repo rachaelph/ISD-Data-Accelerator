@@ -229,7 +229,7 @@ ORDER BY Sequence_Number ASC;
 ```
 > **When to use:** User asks "show me the logs for this run" or "what happened during run X?" — use `Log_ID` from any RH-* query result.
 >
-> **Availability note:** These structured notebook rows are primarily expected for `Processing_Method = 'batch'` runs. If they are absent for a non-notebook run, treat that as expected and use `Data_Pipeline_Logs` plus Fabric Monitor instead.
+> **Availability note:** These structured notebook rows are primarily expected for `Processing_Method = 'batch'` runs. If they are absent for a non-notebook run, treat that as expected and use `Data_Pipeline_Logs` plus the Databricks job run UI instead.
 >
 > **Filtering tips:**
 > - Errors only: add `AND Log_Level = 'ERROR'`

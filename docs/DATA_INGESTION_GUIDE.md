@@ -36,14 +36,13 @@ Use the thinner canonical docs when the question is really about contract or dec
 This pattern enables metadata-driven ingestion from external relational databases with support for incremental loading via watermark columns, parallel extraction, and automatic schema evolution.
 
 ### Prerequisites
-1.  **(Optional) Set Up On-Premises Data Gateway**:
+1.  **(Optional) Set up network connectivity for on-premises sources**:
     *   Required for on-premises data sources (e.g., SQL Server, Oracle on your local network).
-    *   Instructions: [Create an On-Premises Data Gateway](https://learn.microsoft.com/en-us/fabric/data-factory/how-to-access-on-premises-data#create-an-on-premises-data-gateway).
+    *   Use a Databricks workspace with an [Azure VNet injection](https://learn.microsoft.com/azure/databricks/security/network/classic/vnet-inject) or [Lakeflow Connect](https://learn.microsoft.com/azure/databricks/lakeflow-connect/) ingestion gateway, or expose the source through Private Link.
 
-2.  **Create connection for your data source**:
-    *   For on-premises or cloud databases like Oracle, DB2, SQL Server, PostgreSQL, or MySQL, create the corresponding connections.
-    *   Navigate to [Manage connections and gateways](https://app.fabric.microsoft.com/groups/me/gateways?experience=power-bi) to create them. Use the *On-Premises* or *Cloud* connection option as appropriate.
-    *   Retrieve the connection ID like [this](https://learn.microsoft.com/en-us/fabric/data-factory/data-source-management#method-1-from-the-manage-connections-and-gateways-page-on-microsoft-fabric-service).
+2.  **Create a connection for your data source**:
+    *   For on-premises or cloud databases like Oracle, DB2, SQL Server, PostgreSQL, or MySQL, create a Unity Catalog [connection](https://learn.microsoft.com/azure/databricks/connect/unity-catalog/connections) and store credentials in a Databricks [secret scope](https://learn.microsoft.com/azure/databricks/security/secrets/secret-scopes).
+    *   Capture the connection name (or secret-scope key) and reference it from `connection_details` in `databricks_batch_engine/datastores/datastore_<ENV>.json`.
 
 3.  **Register the external source as a Datastore**:
     *   Add an entry under `external_datastores` in `databricks_batch_engine/datastores/datastore_<ENV>.json` with a `kind` discriminator and a `connection_details` object (see [FAQ: How do I find my connection ID?](FAQ.md#how-do-i-find-my-connection-id)).
@@ -112,7 +111,7 @@ VALUES
 INSERT INTO Data_Pipeline_Metadata_Primary_Configuration (Table_ID, Configuration_Category, Configuration_Name, Configuration_Value)
 VALUES
     (1, 'source_details', 'partitioning_option', 'DynamicRange')
-    -- See: https://learn.microsoft.com/en-us/fabric/data-factory/connector-oracle-database-copy-activity#parallel-copy-from-oracle-database
+    -- See: https://learn.microsoft.com/azure/databricks/sql/language-manual/functions/parallel-jdbc-read
 ```
 
 **Handle Non-UTF-8 Encodings**
@@ -180,10 +179,9 @@ This pattern enables metadata-driven ingestion of files from SFTP servers. The p
 All three steps happen automatically within a **single orchestration record** - just like database ingestion with `pipeline_stage_and_batch`. Supports incremental loading based on file modification timestamps automatically (no watermark configuration required).
 
 ### Prerequisites
-1.  **Create connection for SFTP**:
-    *   Navigate to [Manage connections and gateways](https://app.fabric.microsoft.com/groups/me/gateways?experience=power-bi)
-    *   Create a new **SFTP** connection with your server credentials
-    *   Retrieve the connection ID
+1.  **Create a connection for SFTP**:
+    *   Provision SFTP credentials in a Databricks [secret scope](https://learn.microsoft.com/azure/databricks/security/secrets/secret-scopes) and reference them from `connection_details` in `databricks_batch_engine/datastores/datastore_<ENV>.json`.
+    *   Capture the secret-scope key as the connection identifier consumed by `external_datastores`.
 
 2.  **Register the SFTP source as a Datastore**:
     *   Add an entry under `external_datastores` in `databricks_batch_engine/datastores/datastore_<ENV>.json` with `kind: "sftp"` and a `connection_details` object. See [FAQ: How do I find my connection ID?](FAQ.md#how-do-i-find-my-connection-id).

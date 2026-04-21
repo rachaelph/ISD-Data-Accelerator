@@ -1,6 +1,6 @@
 # Commit Message Instructions
 
-Generate commit messages using [Conventional Commits](https://www.conventionalcommits.org/) format for this Fabric Data Platform Accelerator repository.
+Generate commit messages using [Conventional Commits](https://www.conventionalcommits.org/) format for this Databricks Data Platform Accelerator repository.
 
 ## Format
 

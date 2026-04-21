@@ -5,7 +5,7 @@ description: "Generate a curated changelog from raw commits — Highlights (rank
 
 # Update Changelog
 
-Generate a curated changelog update for the **Fabric Data Platform Accelerator**.
+Generate a curated changelog update for the **Databricks Data Platform Accelerator**.
 
 ## Execution Order
 
@@ -86,8 +86,8 @@ Pick the **5–8 most impactful changes** and write them for a human audience �
 ```markdown
 ### Highlights
 
-- **Pipeline error messages now logged to the warehouse** — Every pipeline run captures error details in `Data_Pipeline_Logs` with a direct link to the Fabric Monitor, so you can diagnose failures without leaving the warehouse.
-- **One-command workspace deployment** — New `/fdp-04-commit` and `/fdp-05-run` Copilot commands let you deploy changes and trigger pipelines without touching Git or the Fabric UI directly.
+- **Pipeline error messages now logged to the warehouse** — Every pipeline run captures error details in `Data_Pipeline_Logs` with a direct link to the Databricks job run, so you can diagnose failures without leaving the warehouse.
+- **One-command workspace deployment** — New `/fdp-04-commit` and `/fdp-05-run` Copilot commands let you deploy changes and trigger pipelines without touching Git or the Databricks UI directly.
 - **SQL Analytics endpoints for Lakehouses** — Lakehouses and Warehouses now register their SQL Analytics endpoint in metadata, enabling direct T-SQL queries from notebooks and external tools.
 ```
 

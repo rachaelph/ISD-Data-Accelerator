@@ -1,6 +1,6 @@
 <div align="center">
 
-# Analytics Transformation with Fabric
+# Analytics Transformation with Databricks
 
 ### Your End-to-End Data Engineering Copilot
 
@@ -20,7 +20,7 @@
 
 Data engineering is overdue for a better interface.
 
-This repository reimagines the engineering workflow with AI coding agents so teams can author, modify, troubleshoot, investigate, and deploy Fabric data solutions by expressing intent in natural language.
+This repository reimagines the engineering workflow with AI coding agents so teams can author, modify, troubleshoot, investigate, and deploy Databricks data solutions by expressing intent in natural language.
 
 What makes that viable is not AI alone. It is the governed framework underneath the agent experience: the metadata model, implementation patterns, validation rules, deployment automation, and operational guardrails that make the workflow repeatable at enterprise scale.
 
@@ -60,7 +60,7 @@ When your goal spans multiple stages, start with `/fdp-00-execute`. It uses the 
 
 After you clone or open the repository in VS Code, you can immediately start asking questions about the accelerator and its workflows. There is no build step, package installation, environment variable setup, API key exchange, or custom bootstrap required to begin exploring the repository through Copilot.
 
-The assistant can work purely from the local markdown, scripts, and notebooks at first. You'll only need Fabric access when you move from design and investigation into deployment or execution.
+The assistant can work purely from the local markdown, scripts, and notebooks at first. You'll only need Databricks access when you move from design and investigation into deployment or execution.
 
 > 💡 **Tip:** Use **GPT 5.4** for the best experience.
 
@@ -93,7 +93,7 @@ The assistant can work purely from the local markdown, scripts, and notebooks at
 
 ## 🏗️ Architecture
 
-The accelerator combines a Copilot-first authoring experience with a Fabric-native execution model.
+The accelerator combines a Copilot-first authoring experience with a Databricks-native execution model.
 
 The platform architecture defines how intent, metadata, pipelines, and workspaces fit together. The authoring foundation shows how governed implementation patterns are created and maintained.
 

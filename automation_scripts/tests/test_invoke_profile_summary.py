@@ -57,7 +57,7 @@ class InvokeProfileSummaryTests(unittest.TestCase):
             datastore_name="silver",
             datastore_type="Lakehouse",
             medallion_layer="silver",
-            endpoint="endpoint.fabric.microsoft.com",
+            endpoint="endpoint.databricks.azure.net",
         )
         schema_rows = [
             {"COLUMN_NAME": "cust_id", "DATA_TYPE": "int", "ORDINAL_POSITION": 1},

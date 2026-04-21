@@ -6,7 +6,7 @@
 # # NB_Helper_Functions_2 - File Ingestion and DDL Generation Utilities
 # 
 # ## Overview
-# This notebook contains specialized helper functions for the Fabric Data Platform Accelerator, focusing on:
+# This notebook contains specialized helper functions for the Databricks Data Platform Accelerator, focusing on:
 # - **File Ingestion**: Reading various file formats from Bronze_Files with schema inference and evolution support
 # - **DDL Generation**: Creating Delta table DDL from source database schemas (DB2, SQL Server, PostgreSQL, MySQL)
 # - **Custom Ingestion**: Framework for user-defined ingestion functions
@@ -930,7 +930,7 @@ def create_my_sql_table_ddl(
 # 
 # ### Integration Points
 # - Seamlessly integrates with Bronze layer storage patterns
-# - Supports both ADLS Gen2 shortcuts and native Fabric storage
+# - Supports both ADLS Gen2 shortcuts and native Databricks storage (UC Volumes)
 # - Maintains lineage through `delta__raw_folderpath` tracking
 
 

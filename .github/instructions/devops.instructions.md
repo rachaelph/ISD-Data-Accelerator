@@ -73,7 +73,7 @@ applyTo: "ado_pipelines/**,automation_scripts/**,.github/workflows/**,workspace_
 - Merge strategies
 
 ### Workspace Deployment
-- Fabric workspace management
+- Databricks workspace management
 - Artifact deployment
 - Configuration promotion
 - Generalizing CI/CD to deploy any workspace with a mapping CSV (see `docs/Generalizing_Workspace_CICD.md`)

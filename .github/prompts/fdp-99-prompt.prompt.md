@@ -54,7 +54,7 @@ Apply these principles during the refactor:
 - `vscode_askQuestions` guidance should standardize on exactly 3 fixed options plus freeform input enabled as the fourth path unless a specific safety reason requires freeform to be disabled
 - Deterministic repeated execution patterns should prefer wrapper scripts in `automation_scripts/` or skill `scripts/`
 - Keep prompt-specific rules inline only when they are unique to that prompt
-- Preserve repo terminology, Fabric workflow semantics, and safety constraints
+- Preserve repo terminology, Databricks workflow semantics, and safety constraints
 - Do not change behavior just to make wording shorter
 
 ## Workflow

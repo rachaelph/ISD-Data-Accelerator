@@ -37,7 +37,7 @@
       "prompt_file": ".github/prompts/fdp-04-commit.prompt.md",
       "summary": "Commit, sync, and deploy metadata changes.",
       "runner": "python automation_scripts/agents/commit_pipeline.py ...",
-      "side_effects": "git push and Fabric sync",
+      "side_effects": "git push and Databricks sync",
       "auto_proceed": true,
       "approval_policy": "confirm_if_no_feature_overrides"
     },
@@ -46,7 +46,7 @@
       "prompt_file": ".github/prompts/fdp-05-run.prompt.md",
       "summary": "Execute a single table or trigger exactly once.",
       "runner": "python automation_scripts/agents/run_pipeline.py ...",
-      "side_effects": "starts Fabric execution",
+      "side_effects": "starts Databricks execution",
       "auto_proceed": true,
       "approval_policy": "confirm_if_cancelled_or_target_ambiguous"
     },
@@ -97,7 +97,7 @@
       "command": "/fdp-02-deploy",
       "prompt_file": ".github/prompts/fdp-02-deploy.prompt.md",
       "category": "deployment",
-      "summary": "Deploy the accelerator into a Fabric workspace.",
+      "summary": "Deploy the accelerator into a Databricks workspace.",
       "intent_keywords": [
         "deploy accelerator",
         "initial setup"

@@ -333,7 +333,7 @@ class DatabricksAgentUtilsTests(unittest.TestCase):
             self.assertIn("MERGE INTO", sql)
             self.assertIn("Datastore_Kind", sql)
             self.assertIn("Connection_Details", sql)
-            # Removed Fabric-era columns must not appear
+            # Removed legacy columns must not appear
             for old_col in ("Datastore_Type", "Datastore_ID", "Workspace_Name", "Endpoint", "Connection_ID", "Schema_Name"):
                 self.assertNotIn(old_col, sql, f"Old column '{old_col}' leaked into MERGE SQL")
 

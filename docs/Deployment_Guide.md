@@ -5,14 +5,14 @@
 Use this file when the question is about initial deployment steps, pre-deployment checks, or how to import the accelerator into a Databricks workspace.
 
 ### Pre-Deployment Checklist
-1. Decide whether your workspace should use case-sensitive or case-insensitive collation for the Warehouse SQL endpoint, and configure it before running the deployment. [Learn more about Databricks SQL Warehouse collation](https://learn.microsoft.com/en-us/fabric/data-warehouse/collation).
-2. Select the Fabric deployment pattern that best matches your scale, governance, and security requirements so that the deployment aligns with your operating model. [Review Fabric deployment patterns](https://learn.microsoft.com/en-us/azure/architecture/analytics/architecture/fabric-deployment-patterns).
+1. Decide whether your workspace should use case-sensitive or case-insensitive collation for the Warehouse SQL endpoint, and configure it before running the deployment. [Learn more about Databricks SQL Warehouse collation](https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-collation).
+2. Select the Databricks deployment pattern that best matches your scale, governance, and security requirements so that the deployment aligns with your operating model. [Review Databricks workspace topology guidance](https://learn.microsoft.com/azure/databricks/admin/workspace/manage-workspaces).
 
 ### Steps:
 1.  **Import the following notebooks into your Databricks workspace**:
     *   [CreatingArtifacts_Orchestrator.py](../deployment/ImportOnePlatform/CreatingArtifacts_Orchestrator.py)
     *   [CreatingArtifacts.py](../deployment/ImportOnePlatform/CreatingArtifacts.py)
-    *   [ImportArtifacts_DONT_OPEN_IN_FABRIC.py](../deployment/ImportOnePlatform/ImportArtifacts_DONT_OPEN_IN_FABRIC.py)
+    *   `ImportArtifacts_DONT_OPEN_IN_NOTEBOOK_UI.py` (from the deployment IP package)
 
     > **Re-deployment tip:** The deployment is idempotent — safe to re-run on existing workspaces. See [FAQ: How do I re-deploy or upgrade?](FAQ.md#how-do-i-re-deploy-or-upgrade-the-accelerator-in-an-existing-workspace) for the full re-deployment process and artifact behavior table.
 
@@ -46,7 +46,7 @@ Use this file when the question is about initial deployment steps, pre-deploymen
     *   Open and execute all cells in the `CreatingArtifacts_Orchestrator.py` notebook. This will deploy all the necessary catalogs, Warehouses, Pipelines, Notebooks, and other IP artifacts into your workspace(s).
     *   **Execution Time:** ~5 minutes
 
-    The deployment will create all required catalogs, warehouses, notebooks, pipelines, reports, and semantic models. See [FAQ: What artifacts are deployed?](FAQ.md#what-artifacts-are-deployed-to-my-fabric-workspace) for the full inventory.
+    The deployment will create all required catalogs, warehouses, notebooks, pipelines, reports, and semantic models. See [FAQ: What artifacts are deployed?](FAQ.md#what-artifacts-are-deployed-to-my-databricks-workspace) for the full inventory.
 
 4. **Set up Git and your target repository**:
    

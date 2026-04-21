@@ -6,7 +6,7 @@
 # # NB_Helper_Functions_1 - Core Data Engineering Utilities
 # 
 # ## Overview
-# This notebook provides the primary suite of reusable helper functions for the Fabric Data Platform Accelerator. These functions are designed to streamline data engineering workflows, enforce best practices, and ensure robust, scalable, and maintainable pipelines across all medallion architecture layers (Bronze, Silver, Gold).
+# This notebook provides the primary suite of reusable helper functions for the Databricks Data Platform Accelerator. These functions are designed to streamline data engineering workflows, enforce best practices, and ensure robust, scalable, and maintainable pipelines across all medallion architecture layers (Bronze, Silver, Gold).
 # 
 # ### Key Functional Areas
 # - **Surrogate Key Management**: Automated generation and assignment of surrogate keys for dimension tables.
@@ -1058,7 +1058,7 @@ def add_timestamp_metadata_columns(
     Add system-generated timestamp columns for data lineage and change tracking.
 
     This function adds metadata columns ONLY when writing to Delta tables (not file outputs):
-    - `delta__created_datetime`: Captures when the record first lands in a Fabric Delta table.
+    - `delta__created_datetime`: Captures when the record first lands in a Databricks Delta table.
     - `delta__modified_datetime`: Captures when the record is written/updated during the current batch.
 
     The function intelligently determines when to add timestamps:
@@ -6618,7 +6618,7 @@ def build_table_properties(
     if stats_properties:
         props.update(stats_properties)
 
-    # delta.parquet.vorder.enabled is Fabric-specific; skip on Databricks
+    # delta.parquet.vorder.enabled is not supported on Databricks; skip
 
     # --- constant settings (same value everywhere, but still safer as table props) ---
     props['delta.enableDeletionVectors'] = 'true'
@@ -6807,7 +6807,7 @@ def build_statistics_columns_config(
         2. If compute_statistics_on_first_n_columns is specified: Persist that count in
            delta.dataSkippingNumIndexedCols
         3. If neither specified: Return an empty dict so the accelerator does not persist
-           either managed stats property and the table stays on Fabric's built-in
+           either managed stats property and the table stays on Databricks's built-in
            automated statistics behavior
     
     Explicit Column Filtering:
@@ -6829,7 +6829,7 @@ def build_statistics_columns_config(
           automatically excluded to prevent IllegalArgumentException
         - When neither stats option is configured, the accelerator intentionally avoids
             persisting delta.dataSkippingStatsColumns or delta.dataSkippingNumIndexedCols
-            so most tables rely on Fabric's default automated stats behavior
+            so most tables rely on Databricks's default automated stats behavior
         - Existing tables are not reconciled in the notebook write path. Change
             stats properties with an explicit table recreate or ALTER TABLE flow
             outside the per-table processing notebook.
@@ -6846,7 +6846,7 @@ def build_statistics_columns_config(
     
     if not compute_statistics_on_columns and not compute_statistics_on_first_n_columns:
         log_and_print(
-            "No explicit statistics columns configured. Leaving Delta stats properties unmanaged and relying on Fabric automated statistics defaults."
+            "No explicit statistics columns configured. Leaving Delta stats properties unmanaged and relying on Databricks automated statistics defaults."
         )
         return {}
 
@@ -7029,7 +7029,7 @@ def _write_excel_file(
     """
     Write DataFrame to Excel file using pandas.
     
-    Excel requires pandas as there is no Spark Excel writer in Fabric runtime.
+    Excel requires pandas as there is no Spark Excel writer in the Databricks runtime.
     Includes row count validation to prevent exceeding Excel limits or causing
     out-of-memory errors during Spark-to-pandas conversion.
     
@@ -7060,7 +7060,7 @@ def _write_excel_file(
         warning_msg = f"Warning: Dataset has {row_count:,} rows. Large Excel files may cause memory issues. Consider using CSV or Parquet format for datasets over {pandas_safe_limit:,} rows."
         log_and_print(warning_msg, level="warn")
     
-    # Arrow optimization is enabled by default in Fabric Runtime 1.3+ (Spark 3.5)
+    # Arrow optimization is enabled by default on Databricks Runtime (Spark 3.5+)
     # which provides more efficient Spark to Pandas conversion
     excel_log_info = f"Writing Excel file: {output_path} (sheet: {sheet_name}, rows: {row_count:,})"
     log_and_print(excel_log_info)
@@ -8501,9 +8501,9 @@ def validate_table_schema_contract(
 
 
 
-# ## 6. Ingestion from Fabric Table Sources
+# ## 6. Ingestion from Databricks Table Sources
 # 
-# This section provides functions for ingesting data from existing Delta tables within the Fabric environment. These functions support incremental loading patterns through watermark-based filtering and handle various data types and query complexities.
+# This section provides functions for ingesting data from existing Delta tables within the Databricks environment. These functions support incremental loading patterns through watermark-based filtering and handle various data types and query complexities.
 # 
 # Key capabilities:
 # - **Incremental Data Loading**: Efficiently processes only new or changed records using watermark columns
@@ -8525,7 +8525,7 @@ def route_to_ingestion_method(
     """
     Route to appropriate ingestion method based on source configuration.
     
-    This function determines whether to ingest data from files or from a Fabric table
+    This function determines whether to ingest data from files or from a Databricks table
     and calls the appropriate ingestion function accordingly.
     
     Args:
@@ -8546,7 +8546,7 @@ def route_to_ingestion_method(
     
     Notes:
         - File ingestion uses ingest_raw_files() for Bronze_Files or shortcuts
-        - Table ingestion uses ingest_from_fabric_table() for Fabric tables
+        - Table ingestion uses ingest_from_databricks_table() for Databricks tables
         - Source details format differs between methods
     """
     if source_config['custom_source_function']:
@@ -8581,8 +8581,8 @@ def route_to_ingestion_method(
             lineage_info = lineage_info
         )
     else:
-        # Ingest from Fabric table
-        new_data, new_watermark_value, source_details = ingest_from_fabric_table(
+        # Ingest from Databricks table
+        new_data, new_watermark_value, source_details = ingest_from_databricks_table(
             source_config = source_config,
             watermark_config = watermark_config,
             all_metadata = all_metadata,
@@ -8598,7 +8598,7 @@ def route_to_ingestion_method(
                 expected_schema = expected_schema,
                 source_description = source_details
             )
-        # Note: exit_gracefully_no_data() is called inside ingest_from_fabric_table() when no data found
+        # Note: exit_gracefully_no_data() is called inside ingest_from_databricks_table() when no data found
         
     return new_data, new_watermark_value, source_details
 
@@ -8804,9 +8804,9 @@ def _ingest_with_custom_source_function(
 ):
     """Handle ingestion using a custom external source function.
 
-    Unlike custom_table_ingestion_function which reads from internal Fabric tables
+    Unlike custom_table_ingestion_function which reads from internal Databricks tables
     and receives framework-injected watermark filters, custom_source_function is
-    designed for external sources (APIs, services, non-Fabric systems) where the
+    designed for external sources (APIs, services, non-Databricks systems) where the
     function manages its own data retrieval and watermark tracking.
 
     Args:
@@ -8920,7 +8920,7 @@ def _ingest_from_table_with_cdf(
     watermark_value: str,
     first_run: bool
 ) -> tuple:
-    """Handle ingestion from Fabric tables using Change Data Feed.
+    """Handle ingestion from Databricks tables using Change Data Feed.
     
     Routes to appropriate ingestion method based on whether this is an initial or incremental load.
     For incremental loads, it reads CDF changes and filters to relevant change types.
@@ -8981,7 +8981,7 @@ def _ingest_from_table_with_watermark(
     watermark_table_name: str,
     first_run: bool
 ) -> tuple:
-    """Handle ingestion from Fabric tables using traditional watermark filtering.
+    """Handle ingestion from Databricks tables using traditional watermark filtering.
     
     Args:
         source_query: SQL query to execute
@@ -9041,7 +9041,7 @@ def _ingest_from_table(
     use_change_data_feed: bool,
     first_run: bool
 ) -> tuple:
-    """Orchestrate ingestion from Fabric tables with watermark filtering or Change Data Feed.
+    """Orchestrate ingestion from Databricks tables with watermark filtering or Change Data Feed.
     
     This function routes to the appropriate ingestion method based on configuration:
     - Change Data Feed (CDF): Uses Delta Lake's built-in change tracking with _commit_timestamp
@@ -9088,7 +9088,7 @@ def convert_datetime_to_string(value):
     
     return value
 
-def ingest_from_fabric_table(
+def ingest_from_databricks_table(
     source_config: dict,
     watermark_config: dict,
     all_metadata: dict,
@@ -9096,9 +9096,9 @@ def ingest_from_fabric_table(
     lineage_info: dict
 ) -> DataFrame:
     """
-    Ingest data incrementally from Fabric Delta tables using watermark-based filtering or Change Data Feed.
+    Ingest data incrementally from Databricks Delta tables using watermark-based filtering or Change Data Feed.
 
-    This function executes SQL queries against Fabric tables and applies either:
+    This function executes SQL queries against Databricks tables and applies either:
     1. Traditional watermark filtering - Uses business columns to track changes
     2. Change Data Feed (CDF) - Uses Delta Lake's built-in change tracking with _commit_timestamp
 
@@ -9167,7 +9167,7 @@ def ingest_from_fabric_table(
             watermark_value = new_watermark_value,
             lineage_info = lineage_info,
             first_run = first_run,
-            context_message = "No new data returned from Fabric table after watermark filtering."
+            context_message = "No new data returned from Databricks table after watermark filtering."
         )
 
     # Convert datetime objects to string format for logging

@@ -51,7 +51,7 @@ Use the generated knowledge-routing contract first, then grep within the routed 
 | Architecture patterns | `docs/Medallion_Architecture_Best_Practices.md` |
 | Extending the solution | `docs/Extending_the_Accelerator.md` |
 | Trigger design, parallelism & dependencies | `docs/Trigger_Design_and_Dependency_Management.md` |
-| Deployment to Fabric | `docs/Deployment_Guide.md` |
+| Deployment to Databricks | `docs/Deployment_Guide.md` |
 | Getting started / onboarding | `docs/New_User_Onboarding.md` |
 | Security review guidance | `docs/Security_Guidance_for_Reviewers.md` |
 | How AI is used in the accelerator | `docs/How_AI_Is_Embedded.md` |

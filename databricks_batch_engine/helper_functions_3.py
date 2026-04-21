@@ -324,7 +324,7 @@ def _validate_conflicting_source_configs(primary_config: dict, table_id) -> None
             f"Table_ID {table_id}: Conflicting source_details — both 'custom_source_function' and "
             f"'custom_table_ingestion_function' are set. Only one source function can be active per Table_ID. "
             f"Use custom_source_function for external sources or custom_table_ingestion_function for "
-            f"internal Fabric table reads. "
+            f"internal Databricks table reads. "
             f"Run validate_metadata_sql.py to catch this before deployment."
         )
         log_and_print(error_msg)
@@ -402,7 +402,7 @@ def _log_config_overrides(scope: str, overrides: list) -> None:
 # ERROR MESSAGE SANITIZATION
 # ===========================================================================================
 # Redacts common secret patterns and truncates before persisting to Data_Pipeline_Logs.
-# Full, unredacted errors remain available in Spark driver logs (Log4j / Fabric Monitor).
+# Full, unredacted errors remain available in Spark driver logs (Log4j and the Databricks job run UI).
 # ===========================================================================================
 
 import re as _re_module  # local alias avoids shadowing if re is already imported
@@ -784,7 +784,7 @@ def get_datastore_entry(datastore_config: str | list | dict, datastore_name: str
 # These functions provide local file system access to lakehouse files for custom ingestion
 # functions that need to use libraries requiring local paths (e.g., zipfile, PIL, PyPDF2).
 #
-# Documentation: https://learn.microsoft.com/en-us/fabric/data-engineering/notebook-utilities
+# Documentation: https://docs.databricks.com/aws/en/dev-tools/databricks-utils
 #
 # WHEN TO USE:
 # - Python open() - e.g., open(path, 'r')
@@ -916,7 +916,7 @@ def extract_lineage_information(
             - source_medallion_layer (str): Source medallion layer (Bronze/Silver/Gold/External)
             - source_type (str): Source system type
             - target_medallion_layer (str): Target medallion layer (Bronze/Silver/Gold)
-            - target_type (str): Target system type (Fabric Lakehouse or Fabric Warehouse)
+            - target_type (str): Target system type (Databricks Unity Catalog Table or Databricks Volume Files)
     
     Source Type Logic:
         - If custom_source_function is set → Custom Source Function
@@ -942,7 +942,7 @@ def extract_lineage_information(
         >>> lineage.source_medallion_layer
         'Bronze'
         >>> lineage.source_type
-        'Fabric Lakehouse (Files)'
+        'Databricks Volume Files'
     """
     source_datastore_name = source_config.source_datastore_name.strip().lower()
     staging_folder_path = source_config.staging_folder_path or ''
@@ -951,7 +951,7 @@ def extract_lineage_information(
     
     # Determine Source Type and Medallion Layer
     # Note: External database sources are handled by pipelines before this notebook runs,
-    # so by the time we're here, sources are either Delta tables or Files in a Fabric Lakehouse
+    # so by the time we're here, sources are either Delta tables or Files in a Databricks UC Volume
     
     if custom_source_function:
         source_type = 'Custom Source Function'
@@ -1005,7 +1005,7 @@ def extract_custom_staging_lineage_information(
         source_medallion_layer='External',
         source_type='Custom Staging Function',
         target_medallion_layer=target_medallion_layer,
-        target_type='Fabric Lakehouse'
+        target_type='Databricks Unity Catalog Table'
     )
 
     log_and_print(
@@ -1637,7 +1637,7 @@ def _is_transient_warehouse_connection_error(error: Exception) -> bool:
         "database does not exist",
         "invalid",
         "not found",
-        "failed to connect to fabric warehouse",
+        "failed to connect to databricks warehouse",
     )
     if any(signal in error_text for signal in non_retryable_signals):
         return False
@@ -2558,7 +2558,7 @@ def parse_bronze_layer_spark_configuration() -> LayerSparkConfig:
         False
     
     Reference:
-        https://support.fabric.microsoft.com/en-us/blog/optimizing-spark-compute-for-medallion-architectures-in-microsoft-fabric
+        https://docs.databricks.com/aws/en/optimizations/index
     """
     log_and_print("Configuring table properties for Bronze layer")
     
@@ -2596,7 +2596,7 @@ def parse_silver_layer_spark_configuration() -> LayerSparkConfig:
         True
     
     Reference:
-        https://support.fabric.microsoft.com/en-us/blog/optimizing-spark-compute-for-medallion-architectures-in-microsoft-fabric
+        https://docs.databricks.com/aws/en/optimizations/index
     """
     log_and_print("Configuring table properties for Silver layer")
     
@@ -2635,7 +2635,7 @@ def parse_gold_layer_spark_configuration() -> LayerSparkConfig:
         True
     
     Reference:
-        https://support.fabric.microsoft.com/en-us/blog/optimizing-spark-compute-for-medallion-architectures-in-microsoft-fabric
+        https://docs.databricks.com/aws/en/optimizations/index
     """
     log_and_print("Configuring table properties for Gold layer")
     
@@ -2699,14 +2699,14 @@ def apply_spark_configurations(
     log_and_print("Spark Config: spark.sql.ansi.enabled = True")
 
     # Performance settings - compaction
-    # https://learn.microsoft.com/en-us/fabric/data-engineering/table-compaction?tabs=sparksql
+    # https://docs.databricks.com/aws/en/delta/optimize
     spark.conf.set("spark.microsoft.delta.optimize.fast.enabled", "True")
     log_and_print("Spark Config: spark.microsoft.delta.optimize.fast.enabled = True")
 
     spark.conf.set("spark.microsoft.delta.optimize.fileLevelTarget.enabled", "True")
     log_and_print("Spark Config: spark.microsoft.delta.optimize.fileLevelTarget.enabled = True")
 
-    # https://learn.microsoft.com/en-us/fabric/data-engineering/tune-file-size?tabs=sparksql#adaptive-target-file-size
+    # https://docs.databricks.com/aws/en/delta/tune-file-size
     spark.conf.set("spark.microsoft.delta.targetFileSize.adaptive.enabled", "True")
     log_and_print("Spark Config: spark.microsoft.delta.targetFileSize.adaptive.enabled = True")
 
@@ -3647,7 +3647,7 @@ def instantiate_notebook(
     Args:
         notebook_name (str): Name of the custom function module/notebook to load.
                             For .py files, this is the filename without extension.
-                            For notebooks, this is the Fabric notebook name.
+                            For notebooks, this is the Databricks notebook name.
         max_retries (int): Maximum retry attempts for notebook API fallback (default: 3)
     
     Example:
@@ -3697,7 +3697,7 @@ def _try_load_from_lakehouse_file(module_name: str) -> bool:
         Files are loaded from: /lakehouse/default/Files/custom_functions/
     """
     # Construct the full path to the .py file
-    # In Fabric, /lakehouse/default/ maps to the default attached lakehouse
+    # On Databricks, /lakehouse/default/ maps to the default attached lakehouse mount
     py_file_path = f"/lakehouse/default/Files/{CUSTOM_FUNCTIONS_FOLDER}/{module_name}.py"
     
     # Check if the file exists
@@ -3736,7 +3736,7 @@ def _load_via_notebook_api(
     max_retries: int
 ) -> None:
     """
-    Load custom functions using the Fabric notebook getDefinition() API.
+    Load custom functions using the Databricks notebook getDefinition() API.
     
     This is the development fallback method - used when .py files haven't been
     deployed via CI/CD. Retrieves notebook content via API and executes code 
@@ -3746,7 +3746,7 @@ def _load_via_notebook_api(
     Files folder, which loads directly from disk instead of this method.
     
     Args:
-        notebook_name (str): Name of the Fabric notebook to load
+        notebook_name (str): Name of the Databricks notebook to load
         max_retries (int): Maximum number of retry attempts
     
     Raises:
@@ -3778,10 +3778,10 @@ def _load_via_notebook_api(
 
 def _get_notebook_code_cells(notebook_name: str) -> list:
     """
-    Retrieve and parse a Fabric notebook, returning only the code cells.
+    Retrieve and parse a Databricks notebook, returning only the code cells.
     
     Args:
-        notebook_name (str): Name of the Fabric notebook to retrieve
+        notebook_name (str): Name of the Databricks notebook to retrieve
         
     Returns:
         list: List of code cell dictionaries from the notebook
