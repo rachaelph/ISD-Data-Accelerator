@@ -81,7 +81,7 @@ VALUES
 (1001, 'column_cleansing', 'replace_non_alphanumeric_with_underscore', 'true'),
 (1001, 'data_cleansing', 'replace_blank_with_null_in_string_columns', '*'),
 (1001, 'data_cleansing', 'trim_data_in_string_columns', '*'),
--- Bronze layer only allows append or overwrite; overwrite for repeatable demo runs.
+-- Bronze layer only allows append or overwrite -- using overwrite for repeatable demo runs.
 (1001, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
 -- Table_ID 1002: Bronze ingestion of london_taxi.csv from UC Volume
@@ -130,7 +130,7 @@ VALUES
 -- ---------------------------------------------------------------------
 -- Table_ID 1201: Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
--- Primary source is london_taxi; nyc is unioned via union_data step below.
+-- Primary source is london_taxi -- nyc is unioned via union_data step below.
 (1201, 'source_details', 'table_name', 'silver.london_taxi'),
 (1201, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
