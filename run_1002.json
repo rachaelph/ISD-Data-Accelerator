@@ -1,0 +1,66 @@
+JoblessNotebook status is RUNNING.
+JoblessNotebook status is RUNNING.
+JoblessNotebook status is TERMINATED/SUCCESS.
+{
+  "executionMode": "JoblessNotebook",
+  "executionStatus": "Completed",
+  "runId": 921933990423219,
+  "errorMessage": null,
+  "errorType": null,
+  "stackTrace": null,
+  "databricksRunUrl": "https://adb-7405606904496964.4.azuredatabricks.net/#job/0/run/921933990423219",
+  "pollHistory": [
+    {
+      "observedAtUtc": "2026-04-21T12:05:51",
+      "status": "RUNNING",
+      "startTimeUtc": "2026-04-21T12:05:55.147000",
+      "endTimeUtc": null
+    },
+    {
+      "observedAtUtc": "2026-04-21T12:06:22",
+      "status": "RUNNING",
+      "startTimeUtc": "2026-04-21T12:05:55.147000",
+      "endTimeUtc": null
+    },
+    {
+      "observedAtUtc": "2026-04-21T12:06:52",
+      "status": "TERMINATED/SUCCESS",
+      "startTimeUtc": "2026-04-21T12:05:55.147000",
+      "endTimeUtc": "2026-04-21T12:06:47.513000"
+    }
+  ],
+  "durationSeconds": 61,
+  "branchName": "main",
+  "hasFeatureOverrides": false,
+  "overrideStatusMessage": "Using base datastore config 'C:\\Users\\rphillips\\OneDrive - Microsoft\\Repos\\ISD-Data-Accelerator\\databricks_batch_engine\\datastores\\datastore_DEV.json' (no branch overrides active)",
+  "triggerExecutionTime": "2026-04-21T12:05:50",
+  "resolvedContext": {
+    "gitFolderName": null,
+    "gitFolderPath": null,
+    "sqlWarehouseId": "60b48c746b0305c6",
+    "jobIdBatchProcessing": null,
+    "batchProcessingNotebookPath": "/Workspace/Users/admin@mngenvmcap203181.onmicrosoft.com/ISD-Data-Accelerator/databricks_batch_engine/batch_processing_databricks"
+  },
+  "tableMetadata": {
+    "table_id": 1002,
+    "trigger_name": "RawFilesIngest",
+    "order_of_operations": 1,
+    "target_datastore": "bronze",
+    "target_entity": "london_taxi_raw",
+    "processing_method": "batch",
+    "ingestion_active": true,
+    "metadata_file": "C:\\Users\\rphillips\\OneDrive - Microsoft\\Repos\\ISD-Data-Accelerator\\databricks_batch_engine\\metadata\\metadata_RawFilesIngest.sql"
+  },
+  "parameters": {
+    "table_id": 1002,
+    "trigger_name": "RawFilesIngest",
+    "trigger_step": 1,
+    "target_datastore": "bronze",
+    "target_entity": "london_taxi_raw",
+    "compute": "0414-163607-hd4nqkts",
+    "notebook_path": "/Workspace/Users/admin@mngenvmcap203181.onmicrosoft.com/ISD-Data-Accelerator/databricks_batch_engine/batch_processing_databricks"
+  },
+  "jobId": null,
+  "triggerExecutionId": "ce8fccc4-786d-42da-bbcf-66e6a25f1baf",
+  "latestObservedStatus": "TERMINATED/SUCCESS"
+}

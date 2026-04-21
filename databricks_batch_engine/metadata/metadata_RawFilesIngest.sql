@@ -207,7 +207,7 @@ VALUES
 (1102, 'data_transformation_steps', 'filter_data', 3, 'filter_logic', 'distance >= 0 AND passengers > 0'),
 -- Tag city for later union in Gold layer.
 (1102, 'data_transformation_steps', 'derived_column', 4, 'column_name', 'city'),
-(1102, 'data_transformation_steps', 'derived_column', 4, 'expression', '''london'''),
+(1102, 'data_transformation_steps', 'derived_column', 4, 'expression', '"london"'),
 -- DQ on key columns.
 (1102, 'data_quality', 'validate_not_null', 1, 'column_name', 'vendor,distance'),
 (1102, 'data_quality', 'validate_not_null', 1, 'message', 'vendor and distance required in silver.london_taxi'),
@@ -226,7 +226,7 @@ VALUES
 (1103, 'data_transformation_steps', 'change_data_types', 2, 'new_type', 'int'),
 (1103, 'data_transformation_steps', 'filter_data', 3, 'filter_logic', 'distance >= 0 AND passengers > 0'),
 (1103, 'data_transformation_steps', 'derived_column', 4, 'column_name', 'city'),
-(1103, 'data_transformation_steps', 'derived_column', 4, 'expression', '''nyc'''),
+(1103, 'data_transformation_steps', 'derived_column', 4, 'expression', '"nyc"'),
 (1103, 'data_quality', 'validate_not_null', 1, 'column_name', 'vendor,distance'),
 (1103, 'data_quality', 'validate_not_null', 1, 'message', 'vendor and distance required in silver.nyc_taxi'),
 (1103, 'data_quality', 'validate_not_null', 1, 'if_not_compliant', 'quarantine'),

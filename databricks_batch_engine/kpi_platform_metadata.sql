@@ -954,7 +954,7 @@ BEGIN
   IF p_schema_updates IS NOT NULL
      AND trim(p_schema_updates) <> ''
      AND trim(p_schema_updates) <> '[]' THEN
-    INSERT INTO metadata.Schema_Changes (
+    INSERT INTO kpi_platform.metadata.Schema_Changes (
       Table_ID,
       Datastore_Name,
       Table_Name,

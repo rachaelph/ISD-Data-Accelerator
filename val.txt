@@ -1,0 +1,23 @@
+======================================================================
+Metadata Validation Results: metadata_RawFilesIngest.sql
+======================================================================
+
+Γ¥î ERRORS (2)
+----------------------------------------
+  ΓÇó derived_column expression must not contain double quotes - use SQL escaped single quotes ('') instead [Table_ID: 1102] (line 210)
+    ΓåÆ Replace double quotes with escaped single quotes. Example: CASE WHEN col = ''value'' THEN ''Y'' ELSE ''N'' END
+  ΓÇó derived_column expression must not contain double quotes - use SQL escaped single quotes ('') instead [Table_ID: 1103] (line 229)
+    ΓåÆ Replace double quotes with escaped single quotes. Example: CASE WHEN col = ''value'' THEN ''Y'' ELSE ''N'' END
+
+ΓÜá∩╕Å  WARNINGS (3)
+----------------------------------------
+  ΓÇó VALUES row appears to span multiple lines. Each row should be on one line. (line 61)
+    ΓåÆ Combine the row onto a single line for clarity
+  ΓÇó Table_ID gap between bronze (max: 1003) and silver (min: 1101) is only 98. Consider a gap of at least 100 to allow room for future tables and avoid ID conflicts across developers.
+    ΓåÆ If this is intentional, you can ignore this warning. Otherwise, increase silver Table_IDs to start at 1103 or higher.
+  ΓÇó Table_ID gap between silver (max: 1103) and gold (min: 1201) is only 98. Consider a gap of at least 100 to allow room for future tables and avoid ID conflicts across developers.
+    ΓåÆ If this is intentional, you can ignore this warning. Otherwise, increase gold Table_IDs to start at 1203 or higher.
+
+----------------------------------------------------------------------
+Summary: 2 errors, 3 warnings
+

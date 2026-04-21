@@ -1521,14 +1521,12 @@ def validate_advanced_config(result: ValidationResult, advanced_rows: list, orch
                 result.add_issue('error', 'join_condition', "join_condition must use 'a.' and 'b.' aliases", table_id=table_id, line_number=line_num,
                     suggestion="Use 'a.' prefix for left table columns and 'b.' for right table. Example: 'a.customer_id = b.customer_id'")
 
-        # Double quotes in expressions/filter_logic break SQL parsing - use single quotes (escaped as '') instead
-        if name == 'derived_column' and attribute == 'expression' and '"' in value:
-            result.add_issue('error', 'invalid_expression', "derived_column expression must not contain double quotes - use SQL escaped single quotes ('') instead", table_id=table_id, line_number=line_num,
-                suggestion="Replace double quotes with escaped single quotes. Example: CASE WHEN col = ''value'' THEN ''Y'' ELSE ''N'' END")
-
-        if name == 'filter_data' and attribute == 'filter_logic' and '"' in value:
-            result.add_issue('error', 'invalid_expression', "filter_logic must not contain double quotes - use SQL escaped single quotes ('') instead", table_id=table_id, line_number=line_num,
-                suggestion="Replace double quotes with escaped single quotes. Example: status = ''Active'' AND region = ''US''")
+        # Note: On Databricks Spark SQL, adjacent single-quoted literals are auto-concatenated
+        # (e.g. '''x''' becomes 'x' because the parser reads '' + 'x' + '' = 'x' concatenated).
+        # This means the SQL-standard '' escape does NOT embed a literal single quote when stored
+        # via INSERT VALUES on this runtime. Spark SQL accepts double-quoted strings as valid
+        # string literals, so double quotes ARE permitted inside derived_column expressions and
+        # filter_data filter_logic as the portable way to embed a string literal.
 
         # derived_column uses f.expr() behind the scenes, so lit() won't work - use SQL string literals instead
         if name == 'derived_column' and attribute == 'expression':
