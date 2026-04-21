@@ -54,14 +54,14 @@ VALUES
 ('RawFilesIngest', 1, 1001, 'bronze', 'housing_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1002, 'bronze', 'london_taxi_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1003, 'bronze', 'nyc_taxi_raw', '', 'batch', 1),
-('RawFilesIngest', 1, 1004, 'bronze', 'titanic_raw', '', 'batch', 1),
+('RawFilesIngest', 1, 1004, 'bronze', 'titanic', '', 'batch', 1),
 ('RawFilesIngest', 2, 1101, 'silver', 'housing', '', 'batch', 1),
 ('RawFilesIngest', 2, 1102, 'silver', 'london_taxi', '', 'batch', 1),
 ('RawFilesIngest', 2, 1103, 'silver', 'nyc_taxi', '', 'batch', 1),
 ('RawFilesIngest', 2, 1104, 'silver', 'titanic', '', 'batch', 1),
 ('RawFilesIngest', 3, 1201, 'gold', 'taxi_trip_metrics', '', 'batch', 1),
 ('RawFilesIngest', 3, 1202, 'gold', 'housing_summary', '', 'batch', 1),
-('RawFilesIngest', 3, 1203, 'gold', 'titanic_survival_summary', '', 'batch', 1);
+('RawFilesIngest', 3, 1203, 'gold', 'titanic', '', 'batch', 1);
 
 -- =====================================================================
 -- STEP 3: Primary Configuration
@@ -147,7 +147,7 @@ VALUES
 -- ---------------------------------------------------------------------
 -- Table_ID 1104: Silver titanic - typed + deduplicated + DQ from bronze
 -- ---------------------------------------------------------------------
-(1104, 'source_details', 'table_name', 'bronze.titanic_raw'),
+(1104, 'source_details', 'table_name', 'bronze.titanic'),
 (1104, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
 -- Table_ID 1201: Gold taxi_trip_metrics - union london + nyc, aggregate
@@ -161,7 +161,7 @@ VALUES
 (1202, 'source_details', 'table_name', 'silver.housing'),
 (1202, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
--- Table_ID 1203: Gold titanic_survival_summary - survival rate by class/sex
+-- Table_ID 1203: Gold titanic - survival rate by class/sex
 -- ---------------------------------------------------------------------
 (1203, 'source_details', 'table_name', 'silver.titanic'),
 (1203, 'target_details', 'merge_type', 'overwrite');
@@ -202,13 +202,13 @@ VALUES
 (1003, 'data_quality', 'validate_not_null', 2, 'message', 'distance must not be null in nyc_taxi_raw'),
 (1003, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
--- Table_ID 1004 Bronze titanic_raw - DQ on key columns
+-- Table_ID 1004 Bronze titanic - DQ on key columns
 -- ---------------------------------------------------------------------
 (1004, 'data_quality', 'validate_not_null', 1, 'column_name', 'passengerid'),
-(1004, 'data_quality', 'validate_not_null', 1, 'message', 'passengerid must not be null in titanic_raw'),
+(1004, 'data_quality', 'validate_not_null', 1, 'message', 'passengerid must not be null in titanic'),
 (1004, 'data_quality', 'validate_not_null', 1, 'if_not_compliant', 'quarantine'),
 (1004, 'data_quality', 'validate_not_null', 2, 'column_name', 'survived'),
-(1004, 'data_quality', 'validate_not_null', 2, 'message', 'survived must not be null in titanic_raw'),
+(1004, 'data_quality', 'validate_not_null', 2, 'message', 'survived must not be null in titanic'),
 (1004, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
 -- Table_ID 1101 Silver housing - cast types, drop dupes, DQ
@@ -337,7 +337,7 @@ VALUES
 (1202, 'data_quality', 'validate_range', 1, 'message', 'gold housing_summary avg_target must be positive'),
 (1202, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn'),
 -- ---------------------------------------------------------------------
--- Table_ID 1203 Gold titanic_survival_summary - survival rate by class/sex
+-- Table_ID 1203 Gold titanic - survival rate by class/sex
 -- ---------------------------------------------------------------------
 -- Aggregate: rows per (pclass, sex) plus mean survival rate and mean fare.
 (1203, 'data_transformation_steps', 'aggregate_data', 1, 'group_by_columns', 'pclass,sex'),
