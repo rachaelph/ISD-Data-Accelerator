@@ -1,0 +1,66 @@
+JoblessNotebook status is RUNNING.
+JoblessNotebook status is RUNNING.
+JoblessNotebook status is TERMINATED/SUCCESS.
+{
+  "executionMode": "JoblessNotebook",
+  "executionStatus": "Completed",
+  "runId": 89073667409064,
+  "errorMessage": null,
+  "errorType": null,
+  "stackTrace": null,
+  "databricksRunUrl": "https://adb-7405606904496964.4.azuredatabricks.net/#job/0/run/89073667409064",
+  "pollHistory": [
+    {
+      "observedAtUtc": "2026-04-21T12:44:46",
+      "status": "RUNNING",
+      "startTimeUtc": "2026-04-21T12:44:48.918000",
+      "endTimeUtc": null
+    },
+    {
+      "observedAtUtc": "2026-04-21T12:45:16",
+      "status": "RUNNING",
+      "startTimeUtc": "2026-04-21T12:44:48.918000",
+      "endTimeUtc": null
+    },
+    {
+      "observedAtUtc": "2026-04-21T12:45:46",
+      "status": "TERMINATED/SUCCESS",
+      "startTimeUtc": "2026-04-21T12:44:48.918000",
+      "endTimeUtc": "2026-04-21T12:45:41.523000"
+    }
+  ],
+  "durationSeconds": 61,
+  "branchName": "main",
+  "hasFeatureOverrides": false,
+  "overrideStatusMessage": "Using base datastore config 'C:\\Users\\rphillips\\OneDrive - Microsoft\\Repos\\ISD-Data-Accelerator\\databricks_batch_engine\\datastores\\datastore_DEV.json' (no branch overrides active)",
+  "triggerExecutionTime": "2026-04-21T12:44:44",
+  "resolvedContext": {
+    "gitFolderName": null,
+    "gitFolderPath": null,
+    "sqlWarehouseId": "60b48c746b0305c6",
+    "jobIdBatchProcessing": null,
+    "batchProcessingNotebookPath": "/Workspace/Users/admin@mngenvmcap203181.onmicrosoft.com/ISD-Data-Accelerator/databricks_batch_engine/batch_processing_databricks"
+  },
+  "tableMetadata": {
+    "table_id": 1004,
+    "trigger_name": "RawFilesIngest",
+    "order_of_operations": 1,
+    "target_datastore": "bronze",
+    "target_entity": "titanic",
+    "processing_method": "batch",
+    "ingestion_active": true,
+    "metadata_file": "C:\\Users\\rphillips\\OneDrive - Microsoft\\Repos\\ISD-Data-Accelerator\\databricks_batch_engine\\metadata\\metadata_RawFilesIngest.sql"
+  },
+  "parameters": {
+    "table_id": 1004,
+    "trigger_name": "RawFilesIngest",
+    "trigger_step": 1,
+    "target_datastore": "bronze",
+    "target_entity": "titanic",
+    "compute": "0414-163607-hd4nqkts",
+    "notebook_path": "/Workspace/Users/admin@mngenvmcap203181.onmicrosoft.com/ISD-Data-Accelerator/databricks_batch_engine/batch_processing_databricks"
+  },
+  "jobId": null,
+  "triggerExecutionId": "4df4d597-e6bc-4c1f-9bc2-1b589c434558",
+  "latestObservedStatus": "TERMINATED/SUCCESS"
+}

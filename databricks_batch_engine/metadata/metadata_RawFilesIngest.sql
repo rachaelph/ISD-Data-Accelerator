@@ -347,7 +347,7 @@ VALUES
 -- DQ: every (pclass, sex) group must have at least one passenger.
 (1203, 'data_quality', 'validate_range', 1, 'column_name', 'passenger_count'),
 (1203, 'data_quality', 'validate_range', 1, 'min_value', '1'),
-(1203, 'data_quality', 'validate_range', 1, 'message', 'gold titanic_survival_summary must aggregate at least one passenger per group'),
+(1203, 'data_quality', 'validate_range', 1, 'message', 'gold titanic must aggregate at least one passenger per group'),
 (1203, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn'),
 -- DQ: survival_rate must be a probability between 0 and 1.
 (1203, 'data_quality', 'validate_range', 2, 'column_name', 'survival_rate'),
