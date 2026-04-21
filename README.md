@@ -40,7 +40,7 @@ When your goal spans multiple stages, start with `/fdp-00-execute`. It uses the 
 |:--------|:-------------|
 | `/fdp-00-execute` | Plan and execute an end-to-end workflow from one intent across authoring, validation, deployment, execution, and investigation |
 | `/fdp-01-onboarding` | Get started with the accelerator |
-| `/fdp-02-deploy` | Deploy the accelerator IP into a Fabric workspace for initial setup |
+| `/fdp-02-deploy` | Deploy the accelerator IP into a Databricks workspace for initial setup |
 | `/fdp-02-feature` | Set up an isolated feature branch and workspace |
 | `/fdp-03-author` | Create or modify metadata, entities, DQ rules, transformations, and custom Python/PySpark functions |
 | `/fdp-03-convert` | Convert existing SQL/Python/ETL code into accelerator metadata |
