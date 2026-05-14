@@ -11,13 +11,15 @@
 --     - london_taxi.csv    (London taxi trips, same schema as nyc_taxi)
 --     - nyc_taxi.csv       (NYC taxi trips)
 --
---   Bronze (1001-1003): Raw ingestion from volume to Delta with column
+--   Bronze (1001-1005): Raw ingestion from volume to Delta with column
 --                       name cleansing (snake_case, trim, replace
 --                       non-alphanumeric).
---   Silver (1101-1103): Typed, deduplicated, DQ-checked tables.
---   Gold   (1201-1202): Aggregates - taxi_trip_metrics (union of london
---                       + nyc trips by vendor & pickup_month) and
---                       housing_summary (avg target by HouseAge bucket).
+--   Silver (1101-1105): Typed, deduplicated, DQ-checked tables.
+--   Gold   (1201-1204): Aggregates - taxi_trip_metrics (union of london
+--                       + nyc trips by vendor & pickup_month),
+--                       housing_summary (avg target by HouseAge bucket),
+--                       and apartments_summary (avg sale price by
+--                       overall quality bucket and year sold).
 --
 -- Source: UC Volume - kpi_platform.bronze.raw_files
 -- Target: kpi_platform.bronze / silver / gold (per layer datastore)
@@ -55,13 +57,16 @@ VALUES
 ('RawFilesIngest', 1, 1002, 'bronze', 'london_taxi_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1003, 'bronze', 'nyc_taxi_raw', '', 'batch', 1),
 ('RawFilesIngest', 1, 1004, 'bronze', 'titanic', '', 'batch', 1),
+('RawFilesIngest', 1, 1005, 'bronze', 'apartments_raw', '', 'batch', 1),
 ('RawFilesIngest', 2, 1101, 'silver', 'housing', '', 'batch', 1),
 ('RawFilesIngest', 2, 1102, 'silver', 'london_taxi', '', 'batch', 1),
 ('RawFilesIngest', 2, 1103, 'silver', 'nyc_taxi', '', 'batch', 1),
 ('RawFilesIngest', 2, 1104, 'silver', 'titanic', '', 'batch', 1),
+('RawFilesIngest', 2, 1105, 'silver', 'apartments', '', 'batch', 1),
 ('RawFilesIngest', 3, 1201, 'gold', 'taxi_trip_metrics', '', 'batch', 1),
 ('RawFilesIngest', 3, 1202, 'gold', 'housing_summary', '', 'batch', 1),
-('RawFilesIngest', 3, 1203, 'gold', 'titanic', '', 'batch', 1);
+('RawFilesIngest', 3, 1203, 'gold', 'titanic', '', 'batch', 1),
+('RawFilesIngest', 3, 1204, 'gold', 'apartments_summary', '', 'batch', 1);
 
 -- =====================================================================
 -- STEP 3: Primary Configuration
@@ -129,6 +134,20 @@ VALUES
 (1004, 'data_cleansing', 'trim_data_in_string_columns', '*'),
 (1004, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1005: Bronze ingestion of apartments_train.csv from UC Volume
+-- ---------------------------------------------------------------------
+(1005, 'source_details', 'wildcard_folder_path', 'raw_files/apartments_train.csv'),
+(1005, 'source_details', 'datastore_name', 'bronze'),
+(1005, 'source_details', 'file_has_header_row', 'true'),
+(1005, 'source_details', 'delimiter', ','),
+(1005, 'source_details', 'on_bad_records', 'quarantine'),
+(1005, 'column_cleansing', 'trim', 'true'),
+(1005, 'column_cleansing', 'apply_case', 'lower'),
+(1005, 'column_cleansing', 'replace_non_alphanumeric_with_underscore', 'true'),
+(1005, 'data_cleansing', 'replace_blank_with_null_in_string_columns', '*'),
+(1005, 'data_cleansing', 'trim_data_in_string_columns', '*'),
+(1005, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1101: Silver housing - typed + deduplicated from bronze
 -- ---------------------------------------------------------------------
 -- Source is a Delta table - only table_name is required (no source attribute).
@@ -150,6 +169,11 @@ VALUES
 (1104, 'source_details', 'table_name', 'bronze.titanic'),
 (1104, 'target_details', 'merge_type', 'overwrite'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1105: Silver apartments - typed + filtered + DQ from bronze
+-- ---------------------------------------------------------------------
+(1105, 'source_details', 'table_name', 'bronze.apartments_raw'),
+(1105, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1201: Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
 -- Primary source is london_taxi -- nyc is unioned via union_data step below.
@@ -164,7 +188,12 @@ VALUES
 -- Table_ID 1203: Gold titanic - survival rate by class/sex
 -- ---------------------------------------------------------------------
 (1203, 'source_details', 'table_name', 'silver.titanic'),
-(1203, 'target_details', 'merge_type', 'overwrite');
+(1203, 'target_details', 'merge_type', 'overwrite'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1204: Gold apartments_summary - avg sale price by quality bucket / year
+-- ---------------------------------------------------------------------
+(1204, 'source_details', 'table_name', 'silver.apartments'),
+(1204, 'target_details', 'merge_type', 'overwrite');
 
 -- =====================================================================
 -- STEP 4: Advanced Configuration (Transformations and Data Quality)
@@ -210,6 +239,15 @@ VALUES
 (1004, 'data_quality', 'validate_not_null', 2, 'column_name', 'survived'),
 (1004, 'data_quality', 'validate_not_null', 2, 'message', 'survived must not be null in titanic'),
 (1004, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1005 Bronze apartments_raw - DQ on key columns
+-- ---------------------------------------------------------------------
+(1005, 'data_quality', 'validate_not_null', 1, 'column_name', 'saleprice'),
+(1005, 'data_quality', 'validate_not_null', 1, 'message', 'saleprice must not be null in apartments_raw'),
+(1005, 'data_quality', 'validate_not_null', 1, 'if_not_compliant', 'quarantine'),
+(1005, 'data_quality', 'validate_not_null', 2, 'column_name', 'yrsold'),
+(1005, 'data_quality', 'validate_not_null', 2, 'message', 'yrsold must not be null in apartments_raw'),
+(1005, 'data_quality', 'validate_not_null', 2, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
 -- Table_ID 1101 Silver housing - cast types, drop dupes, DQ
 -- ---------------------------------------------------------------------
@@ -301,6 +339,32 @@ VALUES
 (1104, 'data_quality', 'validate_range', 3, 'message', 'pclass must be 1, 2, or 3'),
 (1104, 'data_quality', 'validate_range', 3, 'if_not_compliant', 'quarantine'),
 -- ---------------------------------------------------------------------
+-- Table_ID 1105 Silver apartments - cast types, filter, DQ
+-- ---------------------------------------------------------------------
+-- Cast integer columns (year/count fields).
+(1105, 'data_transformation_steps', 'change_data_types', 1, 'column_name', 'overallqual,overallcond,yearbuilt,yearremodadd,bedroomabvgr,fullbath,halfbath,garagecars,yrsold,saleprice'),
+(1105, 'data_transformation_steps', 'change_data_types', 1, 'new_type', 'int'),
+-- Cast continuous numeric columns to double.
+(1105, 'data_transformation_steps', 'change_data_types', 2, 'column_name', 'lotarea,grlivarea,totalbsmtsf,garagearea,salepricek'),
+(1105, 'data_transformation_steps', 'change_data_types', 2, 'new_type', 'double'),
+-- Filter out invalid sale rows.
+(1105, 'data_transformation_steps', 'filter_data', 3, 'filter_logic', 'saleprice > 0 AND yrsold >= 1900'),
+-- DQ: saleprice must be positive.
+(1105, 'data_quality', 'validate_range', 1, 'column_name', 'saleprice'),
+(1105, 'data_quality', 'validate_range', 1, 'min_value', '1'),
+(1105, 'data_quality', 'validate_range', 1, 'message', 'saleprice must be positive in silver.apartments'),
+(1105, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'quarantine'),
+-- DQ: overallqual must be in the documented 1-10 range.
+(1105, 'data_quality', 'validate_range', 2, 'column_name', 'overallqual'),
+(1105, 'data_quality', 'validate_range', 2, 'min_value', '1'),
+(1105, 'data_quality', 'validate_range', 2, 'max_value', '10'),
+(1105, 'data_quality', 'validate_range', 2, 'message', 'overallqual must be between 1 and 10'),
+(1105, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'quarantine'),
+-- DQ: required keys for downstream Gold aggregation.
+(1105, 'data_quality', 'validate_not_null', 3, 'column_name', 'saleprice,overallqual,yrsold'),
+(1105, 'data_quality', 'validate_not_null', 3, 'message', 'saleprice, overallqual, and yrsold required in silver.apartments'),
+(1105, 'data_quality', 'validate_not_null', 3, 'if_not_compliant', 'quarantine'),
+-- ---------------------------------------------------------------------
 -- Table_ID 1201 Gold taxi_trip_metrics - union london + nyc, aggregate
 -- ---------------------------------------------------------------------
 -- Step 1: union london (primary source) with nyc on shared columns.
@@ -354,4 +418,28 @@ VALUES
 (1203, 'data_quality', 'validate_range', 2, 'min_value', '0'),
 (1203, 'data_quality', 'validate_range', 2, 'max_value', '1'),
 (1203, 'data_quality', 'validate_range', 2, 'message', 'survival_rate must be between 0 and 1'),
-(1203, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'warn');
+(1203, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'warn'),
+-- ---------------------------------------------------------------------
+-- Table_ID 1204 Gold apartments_summary - avg sale price by quality bucket / year
+-- ---------------------------------------------------------------------
+-- Step 1: bucket overallqual (1-10) into readable categories.
+(1204, 'data_transformation_steps', 'conditional_column', 1, 'column_name', 'quality_bucket'),
+(1204, 'data_transformation_steps', 'conditional_column', 1, 'conditions', 'overallqual <= 4|overallqual <= 7|overallqual >= 8'),
+(1204, 'data_transformation_steps', 'conditional_column', 1, 'values', 'low|mid|high'),
+(1204, 'data_transformation_steps', 'conditional_column', 1, 'values_delimiter', '|'),
+(1204, 'data_transformation_steps', 'conditional_column', 1, 'default_value', 'unknown'),
+-- Step 2: aggregate avg sale price, total living area, and listing count per bucket per year.
+(1204, 'data_transformation_steps', 'aggregate_data', 2, 'group_by_columns', 'quality_bucket,yrsold'),
+(1204, 'data_transformation_steps', 'aggregate_data', 2, 'column_name', 'saleprice,grlivarea,overallqual'),
+(1204, 'data_transformation_steps', 'aggregate_data', 2, 'aggregation', 'avg,avg,count'),
+(1204, 'data_transformation_steps', 'aggregate_data', 2, 'output_column_name', 'avg_saleprice,avg_grlivarea,n_listings'),
+-- DQ: every aggregated bucket must contain at least one listing.
+(1204, 'data_quality', 'validate_range', 1, 'column_name', 'n_listings'),
+(1204, 'data_quality', 'validate_range', 1, 'min_value', '1'),
+(1204, 'data_quality', 'validate_range', 1, 'message', 'gold apartments_summary must aggregate at least one listing per group'),
+(1204, 'data_quality', 'validate_range', 1, 'if_not_compliant', 'warn'),
+-- DQ: avg_saleprice should be positive.
+(1204, 'data_quality', 'validate_range', 2, 'column_name', 'avg_saleprice'),
+(1204, 'data_quality', 'validate_range', 2, 'min_value', '1'),
+(1204, 'data_quality', 'validate_range', 2, 'message', 'avg_saleprice must be positive in gold apartments_summary'),
+(1204, 'data_quality', 'validate_range', 2, 'if_not_compliant', 'warn');
